@@ -1,0 +1,21 @@
+{
+  "_comment": "Template MCP configuration for Antigravity Kit. Copy and replace placeholder values before use.",
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp",
+        "--api-key",
+        "REPLACE_WITH_CONTEXT7_API_KEY"
+      ]
+    },
+    "shadcn": {
+      "command": "npx",
+      "args": [
+        "shadcn@latest",
+        "mcp"
+      ]
+    }
+  }
+}

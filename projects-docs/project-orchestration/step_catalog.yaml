@@ -1,0 +1,402 @@
+catalog_version: 3
+catalog_purpose: "Orquestrar execução autônoma do MVP que substitui a Template PV com paridade ao Excel."
+global_rules:
+  source_of_truth: "projects-docs/references/source-of-truth/Template PV - Março 26_v4.xlsx"
+  docs_root: "projects-docs"
+  orchestration_root: "project-orchestration"
+  implementation_roots:
+    - "frontend"
+    - "backend"
+    - "tests"
+  non_negotiables:
+    - "Não adivinhar regra de negócio."
+    - "Permuta é escopo obrigatório do MVP."
+    - "Paridade com o Excel prevalece sobre abstração elegante."
+    - "Documentação do projeto fica fora de .agent."
+    - "Falhou paridade, volta uma etapa."
+  execution_defaults:
+    strict_excel_mode: true
+    preserve_row_slots: true
+    require_parity_trace_on_sensitive_rules: true
+  handoff_payload_minimum:
+    - "o que foi lido"
+    - "o que foi alterado"
+    - "o que foi provado"
+    - "o que ainda está aberto"
+
+steps:
+  - id: ORCH-01
+    phase: governance
+    title: "Formalizar plano mestre e políticas de execução"
+    mode: document
+    priority: critical
+    depends_on: []
+    read_artifacts:
+      - "projects-docs/00-governance/PLAN.md"
+      - "projects-docs/00-governance/NEXT_CHAT_HANDOFF.md"
+    write_artifacts:
+      - "projects-docs/00-governance/PLAN.md"
+      - "projects-docs/00-governance/definition_of_done.md"
+      - "projects-docs/00-governance/execution_policy.md"
+      - "projects-docs/00-governance/replanning_policy.md"
+    objective: "Congelar regras de execução, critério de pronto e política de replanejamento."
+    evidence_required:
+      - "Premissas inegociáveis explícitas."
+      - "Definition of done ligada à paridade e testes."
+    done_when:
+      - "Artefatos-base existirem."
+      - "Paridade com Excel estiver declarada como critério de aceitação."
+      - "Permuta estiver declarada no MVP."
+    do_not_do:
+      - "Não abrir discussão de stack."
+      - "Não reabrir decisões já fechadas."
+
+  - id: EXCEL-01
+    phase: reverse_engineering
+    title: "Inventariar abas e papéis da Template PV"
+    mode: analysis
+    priority: critical
+    depends_on: [ORCH-01]
+    read_artifacts:
+      - "projects-docs/references/source-of-truth/Template PV - Março 26_v4.xlsx"
+    workbook_focus:
+      sheets:
+        - "tbCadastroProduto"
+        - "Tabela Venda - Parcela"
+        - "Referencias"
+        - "Analise Proposta"
+        - "Permuta"
+        - "Fluxo"
+        - "PRC + COORD"
+        - "Imobs"
+        - "Carta Proposta"
+    write_artifacts:
+      - "projects-docs/10-excel-reverse-engineering/sheet_inventory.md"
+    objective: "Documentar o papel funcional de cada aba e seus vínculos."
+    evidence_required:
+      - "Aba com papel descrito."
+      - "Ponto de entrada manual identificado."
+      - "Dependência principal entre abas identificada."
+    done_when:
+      - "As abas centrais estiverem identificadas."
+      - "O trilho normal e o trilho de permuta estiverem separados."
+
+  - id: EXCEL-02
+    phase: reverse_engineering
+    title: "Mapear entradas da Analise Proposta"
+    mode: analysis
+    priority: critical
+    depends_on: [EXCEL-01]
+    read_artifacts:
+      - "projects-docs/references/source-of-truth/Template PV - Março 26_v4.xlsx"
+      - "projects-docs/10-excel-reverse-engineering/sheet_inventory.md"
+    workbook_focus:
+      sheets: ["Analise Proposta", "Tabela Venda - Parcela", "Referencias", "tbCadastroProduto"]
+      cells:
+        - "E5"
+        - "F8"
+        - "E6"
+        - "H5"
+        - "K5"
+        - "N4:N6"
+        - "K9:K12"
+        - "M8:N12"
+        - "D20:D25"
+        - "D38:N58"
+        - "Q54:X54"
+        - "G83:H91"
+      tables:
+        - "Tabela"
+        - "Proposta"
+      validations:
+        - "D20"
+        - "E39:E55"
+        - "E56:E58"
+        - "N4:N6"
+    write_artifacts:
+      - "projects-docs/10-excel-reverse-engineering/contract_support_dictionaries.md"
+    objective: "Mapear somente os campos necessários para contratos, fluxo e paridade."
+    evidence_required:
+      - "Campo lógico."
+      - "Origem em célula ou tabela."
+      - "Classificação entrada/derivado/saída."
+      - "Enumeração ou tipo."
+      - "Impacto em fórmulas relevantes."
+    done_when:
+      - "Os grupos de entrada estiverem documentados."
+      - "As linhas slotadas da proposta estiverem descritas."
+      - "As validações observadas estiverem congeladas."
+    do_not_do:
+      - "Não transformar a proposta em lista livre sem slot."
+      - "Não promover campo oculto a obrigatório sem evidência."
+
+  - id: EXCEL-03
+    phase: reverse_engineering
+    title: "Mapear entradas e diferenças da Permuta"
+    mode: analysis
+    priority: critical
+    depends_on: [EXCEL-02]
+    read_artifacts:
+      - "projects-docs/references/source-of-truth/Template PV - Março 26_v4.xlsx"
+      - "projects-docs/10-excel-reverse-engineering/contract_support_dictionaries.md"
+    workbook_focus:
+      sheets: ["Permuta", "Analise Proposta", "Fluxo"]
+      cells:
+        - "N6:N7"
+        - "N14"
+        - "D38:N58"
+        - "G88:H96"
+        - "P95"
+      tables:
+        - "Proposta8"
+        - "Tabela15"
+    write_artifacts:
+      - "projects-docs/10-excel-reverse-engineering/contract_support_dictionaries.md"
+      - "projects-docs/10-excel-reverse-engineering/template_pv_contract_support_gaps.md"
+    objective: "Explicitar o segundo trilho do motor e o mínimo necessário para o contrato com permuta."
+    evidence_required:
+      - "Diferenças do trilho normal."
+      - "Campos herdados de Analise Proposta."
+      - "Campos exclusivos da permuta."
+      - "Lacunas mínimas abertas."
+    done_when:
+      - "O payload de permuta estiver delimitado."
+      - "Os resultados de permuta estiverem mapeados."
+    do_not_do:
+      - "Não tratar permuta como extensão futura."
+      - "Não inferir regra de ativo recebido além do Excel."
+
+  - id: EXCEL-04
+    phase: reverse_engineering
+    title: "Mapear motor Fluxo e buckets financeiros"
+    mode: analysis
+    priority: critical
+    depends_on: [EXCEL-02, EXCEL-03]
+    read_artifacts:
+      - "projects-docs/references/source-of-truth/Template PV - Março 26_v4.xlsx"
+      - "projects-docs/10-excel-reverse-engineering/contract_support_dictionaries.md"
+      - "projects-docs/10-excel-reverse-engineering/contract_support_dictionaries.md"
+      - "projects-docs/10-excel-reverse-engineering/template_pv_contract_support_gaps.md"
+    workbook_focus:
+      sheets: ["Fluxo", "Analise Proposta", "Permuta"]
+      tables:
+        - "tbFluxo"
+        - "tbFluxoPermuta"
+      cells:
+        - "J6:J8"
+        - "G16:L98"
+        - "G105:L187"
+    write_artifacts:
+      - "projects-docs/10-excel-reverse-engineering/fluxo_formula_map.md"
+      - "projects-docs/10-excel-reverse-engineering/fluxo_bucket_rules.md"
+    objective: "Explicar como as linhas slotadas se transformam em fluxo mensal, PV e buckets."
+    evidence_required:
+      - "Fórmulas de fluxo reajustável e irreajustável."
+      - "Comissão direta mensal."
+      - "Comissão indireta mensal."
+      - "Observação sobre LET, SUMPRODUCT e dependência por ordem."
+    done_when:
+      - "Cronograma mensal estiver explicado."
+      - "Buckets estiverem separados."
+      - "Diferenças entre fluxo normal e permuta estiverem documentadas."
+
+  - id: EXCEL-05
+    phase: reverse_engineering
+    title: "Mapear PRC + COORD e regras de comissão"
+    mode: analysis
+    priority: high
+    depends_on: [EXCEL-02, EXCEL-03, EXCEL-04]
+    read_artifacts:
+      - "projects-docs/references/source-of-truth/Template PV - Março 26_v4.xlsx"
+      - "projects-docs/10-excel-reverse-engineering/fluxo_formula_map.md"
+    workbook_focus:
+      sheets: ["PRC + COORD", "Analise Proposta", "Permuta", "Fluxo"]
+      cells:
+        - "O20:O34"
+        - "H6:K12"
+        - "I7:J7"
+    write_artifacts:
+      - "projects-docs/10-excel-reverse-engineering/commission_rules.md"
+      - "projects-docs/10-excel-reverse-engineering/prc_coord_dependency_map.md"
+    objective: "Congelar cálculo de comissão direta e indireta suficiente para backend e testes."
+    evidence_required:
+      - "Base da comissão."
+      - "Rateio por papel."
+      - "Dependência do mês da entrega."
+    done_when:
+      - "Comissão indireta do fluxo estiver documentada."
+      - "Relação com toda faturada e prêmio estiver documentada."
+
+  - id: EXCEL-06
+    phase: reverse_engineering
+    title: "Mapear exceções, caps, arredondamentos e guard rails"
+    mode: analysis
+    priority: high
+    depends_on: [EXCEL-04, EXCEL-05]
+    read_artifacts:
+      - "projects-docs/references/source-of-truth/Template PV - Março 26_v4.xlsx"
+      - "projects-docs/10-excel-reverse-engineering/fluxo_formula_map.md"
+      - "projects-docs/10-excel-reverse-engineering/commission_rules.md"
+    workbook_focus:
+      sheets: ["Analise Proposta", "Permuta", "Fluxo", "PRC + COORD"]
+      cells:
+        - "Q39:S47"
+        - "Q54:X55"
+        - "H85:H91"
+        - "H90:H96"
+    write_artifacts:
+      - "projects-docs/10-excel-reverse-engineering/parity_sensitive_rules.md"
+    objective: "Listar pontos que mais quebram paridade em implementação autônoma."
+    evidence_required:
+      - "Caps sequenciais da comissão."
+      - "Dependência por ordem de linha."
+      - "Campos latentes."
+      - "Regras de warning."
+    done_when:
+      - "Os guard rails estiverem explícitos."
+      - "Os pontos de retorno para replanejamento estiverem definidos."
+
+  - id: DOMAIN-01
+    phase: domain
+    title: "Formalizar glossário e modelo de domínio"
+    mode: document
+    priority: high
+    depends_on: [EXCEL-04, EXCEL-05, EXCEL-06]
+    read_artifacts:
+      - "projects-docs/10-excel-reverse-engineering/fluxo_bucket_rules.md"
+      - "projects-docs/10-excel-reverse-engineering/commission_rules.md"
+      - "projects-docs/10-excel-reverse-engineering/parity_sensitive_rules.md"
+    write_artifacts:
+      - "projects-docs/20-domain/domain_model.md"
+    objective: "Criar modelo de domínio sem perder aderência às estruturas reais do Excel."
+    evidence_required:
+      - "Entidades mínimas."
+      - "Objetos de valor."
+      - "Serviços de domínio obrigatórios."
+      - "Mapeamento para slots e tabelas."
+    done_when:
+      - "O modelo suportar cálculo normal e permuta."
+      - "Os agregados críticos estiverem definidos."
+    do_not_do:
+      - "Não introduzir agregados que escondam linhas slotadas cedo demais."
+
+  - id: API-01
+    phase: domain
+    title: "Detalhar contratos de API"
+    mode: document
+    priority: critical
+    depends_on: [EXCEL-02, EXCEL-03, EXCEL-04, EXCEL-05, DOMAIN-01]
+    read_artifacts:
+      - "projects-docs/10-excel-reverse-engineering/contract_support_dictionaries.md"
+      - "projects-docs/10-excel-reverse-engineering/template_pv_contract_support_gaps.md"
+      - "projects-docs/10-excel-reverse-engineering/business_rules_catalog.md"
+      - "projects-docs/20-domain/domain_model.md"
+    write_artifacts:
+      - "projects-docs/20-domain/api_contracts_draft.md"
+    objective: "Detalhar payloads, responses, enums e warnings do motor."
+    deliverable_contract:
+      required_endpoints:
+        - "GET /api/v1/bootstrap/reference-data"
+        - "GET /api/v1/products/{enterprise_name}/units/{unit_code}/defaults"
+        - "POST /api/v1/scenarios/calculate"
+        - "POST /api/v1/scenarios"
+        - "GET /api/v1/scenarios/{scenario_id}"
+        - "POST /api/v1/parity/trace"
+      must_include:
+        - "arrays slotados"
+        - "permuta dentro do contrato principal"
+        - "parity_trace"
+        - "warnings para regras latentes"
+        - "mapeamento para células/tabelas"
+    done_when:
+      - "Payload principal de cálculo estiver definido."
+      - "Response principal estiver definido."
+      - "Permuta estiver coberta."
+      - "Houver exemplos reais do workbook."
+
+  - id: TEST-01
+    phase: parity
+    title: "Formalizar suíte inicial de paridade com o Excel"
+    mode: document
+    priority: critical
+    depends_on: [EXCEL-06, API-01]
+    read_artifacts:
+      - "projects-docs/20-domain/api_contracts_draft.md"
+      - "projects-docs/10-excel-reverse-engineering/contract_support_dictionaries.md"
+      - "projects-docs/10-excel-reverse-engineering/template_pv_contract_support_gaps.md"
+    write_artifacts:
+      - "projects-docs/30-parity/golden_test_cases.md"
+      - "projects-docs/30-parity/parity_rules.md"
+    objective: "Definir casos mínimos para provar equivalência do motor com a planilha."
+    evidence_required:
+      - "Caso normal aprovado."
+      - "Caso com permuta reprovado."
+      - "Campos críticos de comparação."
+      - "Tolerância numérica onde aplicável."
+    done_when:
+      - "Casos mínimos existirem."
+      - "Critérios de comparação estiverem formalizados."
+      - "Houver saída esperada por campo crítico."
+
+  - id: IMPL-01
+    phase: implementation
+    title: "Implementar contratos e motor base no backend Python"
+    mode: code
+    priority: critical
+    depends_on: [API-01, TEST-01]
+    read_artifacts:
+      - "projects-docs/20-domain/api_contracts_draft.md"
+      - "projects-docs/30-parity/golden_test_cases.md"
+      - "projects-docs/30-parity/parity_rules.md"
+    write_artifacts:
+      - "backend/*"
+      - "tests/backend/*"
+    objective: "Subir o esqueleto do backend com contratos reais e motor calculável."
+    implementation_rules:
+      - "Não simplificar slots."
+      - "Não trocar fórmula por regra reimaginada."
+      - "Isolar adaptadores de leitura de referência."
+      - "Emitir parity_trace."
+    done_when:
+      - "Endpoints principais responderem."
+      - "Cálculo normal e permuta existirem."
+      - "Testes iniciais passarem."
+
+  - id: IMPL-02
+    phase: implementation
+    title: "Implementar frontend React + Tailwind aderente ao contrato"
+    mode: code
+    priority: high
+    depends_on: [API-01, IMPL-01]
+    read_artifacts:
+      - "projects-docs/20-domain/api_contracts_draft.md"
+    write_artifacts:
+      - "frontend/*"
+      - "tests/frontend/*"
+    objective: "Montar UI mínima para editar contexto, linhas slotadas e resultados."
+    ui_rules:
+      - "Mostrar trilho normal e trilho permuta."
+      - "Preservar row_slot."
+      - "Exibir warnings de paridade."
+    done_when:
+      - "Fluxo mínimo de cálculo estiver navegável."
+      - "Permuta estiver editável."
+      - "Resumo e fluxo mensal estiverem visíveis."
+
+  - id: PACK-01
+    phase: packaging
+    title: "Gerar skills e feature packs do projeto"
+    mode: packaging
+    priority: medium
+    depends_on: [IMPL-01, IMPL-02, TEST-01]
+    read_artifacts:
+      - "projects-docs/20-domain/api_contracts_draft.md"
+      - "projects-docs/30-parity/parity_rules.md"
+    write_artifacts:
+      - ".agent/skills/*"
+      - "feature-packs/*"
+    objective: "Preparar especializações para execução autônoma no Antigravity."
+    done_when:
+      - "Feature packs iniciais existirem."
+      - "Skills críticas existirem."
+      - "Houver referência explícita ao source of truth e aos testes de paridade."
