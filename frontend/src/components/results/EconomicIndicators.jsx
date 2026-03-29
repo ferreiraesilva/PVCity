@@ -77,7 +77,7 @@ export function EconomicIndicators({ result, productContext, selectedUnit, isPer
     const averageOffset = totalGrossPreDelivery > 0 ? weightedOffsetSum / totalGrossPreDelivery : 0;
     const preDeliveryPercent = totalGrossPreDelivery / (isPermuta ? summary.exchange_total_vgv : summary.proposal_total_vgv);
 
-    return { averageOffset, preDeliveryPercent };
+    return { averageOffset, preDeliveryPercent, totalGrossPreDelivery };
   }, [flow, deliveryMonthStr, summary, isPermuta]);
 
   const pvDifference = proposalM2 * area - standardM2 * area;
@@ -136,9 +136,9 @@ export function EconomicIndicators({ result, productContext, selectedUnit, isPer
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-[0.6rem] font-bold uppercase text-slate-400">Captura</div>
+                <div className="text-[0.6rem] font-bold uppercase text-slate-400">Valor Médio</div>
                 <div className="text-2xl font-black text-city-blue">
-                  {metrics ? formatPct(metrics.preDeliveryPercent) : '--'}
+                   {metrics ? formatBRL(metrics.totalGrossPreDelivery / (metrics.averageOffset || 1)) : '--'}
                 </div>
               </div>
             </div>

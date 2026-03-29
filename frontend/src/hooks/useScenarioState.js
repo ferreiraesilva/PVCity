@@ -66,18 +66,72 @@ export function useScenarioState() {
     setProductContext((current) => ({ ...current, [field]: value }));
   };
 
-  const updateSaleRow = (index, field, value) => {
+  const addSaleRow = () => {
+    setSaleFlowRows((current) => [
+      ...current,
+      { ...EMPTY_ROWS[0], row_slot: Date.now() }
+    ]);
+  };
+
+  const removeSaleRow = (index) => {
+    setSaleFlowRows((current) => {
+      if (current.length <= 1) return current; // Keep at least one row
+      return current.filter((_, i) => i !== index);
+    });
+  };
+
+  const updateSaleRow = (index, field, value, basePrice = 0) => {
     setSaleFlowRows((current) => {
       const next = [...current];
-      next[index] = { ...next[index], [field]: value };
+      const row = { ...next[index], [field]: value };
+      
+      // Auto-calculate Total and Percent only if values actually changed
+      if (field === 'installment_count' || field === 'installment_value') {
+        const count = Number(row.installment_count) || 0;
+        const val = Number(row.installment_value) || 0;
+        const newTotal = count * val;
+        
+        if (row.total_vgv !== newTotal) {
+          row.total_vgv = newTotal;
+          if (basePrice > 0) {
+            row.percent = newTotal / basePrice;
+          }
+        }
+      } else if (field === 'percent' && basePrice > 0) {
+        const pct = Number(row.percent) || 0;
+        const newTotal = pct * basePrice;
+        
+        if (row.total_vgv !== newTotal) {
+          row.total_vgv = newTotal;
+          const count = Number(row.installment_count) || 1;
+          row.installment_value = newTotal / count;
+        }
+      }
+      
+      next[index] = row;
       return next;
     });
   };
 
-  const updateExchangeRow = (index, field, value) => {
+  const updateExchangeRow = (index, field, value, basePrice = 0) => {
     setExchangeFlowRows((current) => {
       const next = [...current];
-      next[index] = { ...next[index], [field]: value };
+      const row = { ...next[index], [field]: value };
+      
+      if (field === 'installment_count' || field === 'installment_value') {
+        const count = Number(row.installment_count) || 0;
+        const val = Number(row.installment_value) || 0;
+        const newTotal = count * val;
+        
+        if (row.total_vgv !== newTotal) {
+          row.total_vgv = newTotal;
+          if (basePrice > 0) {
+            row.percent = newTotal / basePrice;
+          }
+        }
+      }
+      
+      next[index] = row;
       return next;
     });
   };
@@ -120,13 +174,15 @@ export function useScenarioState() {
     });
     setCommercialContext(defaults?.commercial_context || EMPTY_COMMERCIAL_CONTEXT);
     setCommissionContext(defaults?.commission_context || EMPTY_COMMISSION_CONTEXT);
-    // O fluxo padrão é salvo em duas cópias:
-    // standadFlowRows: imutável, serve como referência padrão
-    // saleFlowRows: editável pelo usuário
-    const defaultRows = defaults?.default_sale_flow_rows || EMPTY_ROWS;
-    setStandardFlowRows(cloneRows(defaultRows));
-    setSaleFlowRows(cloneRows(defaultRows));
-    setExchangeFlowRows(cloneRows(defaults?.default_exchange_flow_rows || EMPTY_ROWS));
+    const filterEmpty = (r) => 
+      r.installment_count || r.installment_value || r.total_vgv || r.periodicity;
+
+    const defaultRows = (defaults?.default_sale_flow_rows || []).filter(filterEmpty);
+    setStandardFlowRows(cloneRows(defaultRows.length > 0 ? defaultRows : EMPTY_ROWS));
+    setSaleFlowRows(cloneRows(defaultRows.length > 0 ? defaultRows : EMPTY_ROWS));
+    
+    const defaultExchange = (defaults?.default_exchange_flow_rows || []).filter(filterEmpty);
+    setExchangeFlowRows(cloneRows(defaultExchange.length > 0 ? defaultExchange : EMPTY_ROWS));
   };
 
   return {
@@ -141,6 +197,8 @@ export function useScenarioState() {
     setCommissionContext,
     saleFlowRows,
     setSaleFlowRows,
+    addSaleRow,
+    removeSaleRow,
     updateSaleRow,
     standardFlowRows,
     exchangeFlowRows,

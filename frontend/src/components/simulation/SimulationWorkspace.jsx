@@ -238,19 +238,24 @@ export function SimulationWorkspace({ referenceData }) {
             rows={state.standardFlowRows}
             onRowChange={() => {}}
             readOnly={true}
+            basePrice={selectedUnit?.base_price}
           />
 
           <ProposalForm
             title="Fluxo da proposta"
             rows={state.saleFlowRows}
-            onRowChange={state.updateSaleRow}
+            onRowChange={(index, field, value) => state.updateSaleRow(index, field, value, selectedUnit?.base_price)}
+            onAddRow={state.addSaleRow}
+            onRemoveRow={state.removeSaleRow}
+            basePrice={selectedUnit?.base_price}
           />
 
           {isPermuta ? (
             <ProposalForm
               title="Fluxo de permuta"
               rows={state.exchangeFlowRows}
-              onRowChange={state.updateExchangeRow}
+              onRowChange={(index, field, value) => state.updateExchangeRow(index, field, value, selectedUnit?.base_price)}
+              basePrice={selectedUnit?.base_price}
             />
           ) : null}
         </div>
