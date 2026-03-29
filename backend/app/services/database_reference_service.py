@@ -3,14 +3,19 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
+from dateutil.relativedelta import relativedelta
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.enterprise import Enterprise
+from app.models.real_estate_agency import RealEstateAgency
 from app.models.unit import Unit
 from app.models.unit_standard_flow import UnitStandardFlow
-from app.models.real_estate_agency import RealEstateAgency
+from app.services.label_normalizer import (
+    is_financing_periodicity,
+    normalize_periodicity_label,
+)
 
 
 def _to_float(value: Any, default: float = 0.0) -> float:
@@ -20,6 +25,15 @@ def _to_float(value: Any, default: float = 0.0) -> float:
         return float(value)
     except (TypeError, ValueError):
         return default
+
+
+def _to_optional_int(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return None
 
 
 def _to_iso(value: Any) -> str | None:
@@ -72,6 +86,77 @@ def _get_empty_slots() -> list[dict[str, Any]]:
     ]
 
 
+def _start_month_to_iso(
+    offset_or_date: Any,
+    periodicity: str | None,
+    analysis_date: date,
+    delivery_month: Any,
+) -> str | None:
+    if offset_or_date in (None, ""):
+        return None
+    if isinstance(offset_or_date, datetime):
+        return offset_or_date.date().replace(day=10).isoformat()
+    if isinstance(offset_or_date, date):
+        return offset_or_date.replace(day=10).isoformat()
+
+    raw_value = str(offset_or_date).strip()
+    if not raw_value:
+        return None
+    if "-" in raw_value:
+        try:
+            return date.fromisoformat(raw_value).replace(day=10).isoformat()
+        except ValueError:
+            return raw_value
+
+    offset = _to_optional_int(offset_or_date)
+    if offset is None:
+        return raw_value
+
+    anchor = analysis_date.replace(day=1)
+    if is_financing_periodicity(periodicity):
+        if isinstance(delivery_month, datetime):
+            anchor = delivery_month.date().replace(day=1)
+        elif isinstance(delivery_month, date):
+            anchor = delivery_month.replace(day=1)
+        elif delivery_month:
+            try:
+                anchor = date.fromisoformat(str(delivery_month)).replace(day=1)
+            except ValueError:
+                pass
+
+    return (anchor + relativedelta(months=offset)).replace(day=10).isoformat()
+
+
+def _normalize_runtime_periodicity(value: Any, fallback_index: int) -> str:
+    normalized = normalize_periodicity_label(value)
+    if normalized and not str(normalized).strip().isdigit():
+        return normalized
+
+    numeric = _to_optional_int(value)
+    if numeric == 6:
+        return "Semestrais"
+    if numeric == 12:
+        return "Anuais"
+
+    legacy_order = {
+        0: "Sinal",
+        1: "Entrada",
+        2: "Mensais",
+        3: "Semestrais",
+        4: "Única",
+        5: "Financ. Bancário",
+    }
+    return legacy_order.get(fallback_index, str(value).strip())
+
+
+def _default_adjustment_type(periodicity: str | None) -> str:
+    if periodicity in {"Sinal", "Entrada", "Veículo"}:
+        return "Fixas Irreajustaveis"
+    if is_financing_periodicity(periodicity):
+        return "IGPM + 12% a.a"
+    return "INCC"
+
+
 class DatabaseReferenceService:
     """
     Operational source of truth for the application runtime.
@@ -118,7 +203,12 @@ class DatabaseReferenceService:
                 for u in units
             ]
 
-            agencies = db.query(RealEstateAgency).filter_by(is_active=True).order_by(RealEstateAgency.name).all()
+            agencies = (
+                db.query(RealEstateAgency)
+                .filter_by(is_active=True)
+                .order_by(RealEstateAgency.name)
+                .all()
+            )
             real_estate_agencies = [a.name for a in agencies]
 
             return {
@@ -126,21 +216,21 @@ class DatabaseReferenceService:
                 "unit_lookup_keys": unit_lookup_keys,
                 "real_estate_agencies": real_estate_agencies,
                 "enums": {
-                    "boolean_ptbr": ["Sim", "Não"],
-                    "modification_kind": ["Não", "Decorado (R$/m²)", "Facility (R$/m²)"],
+                    "boolean_ptbr": ["Sim", "NÃ£o"],
+                    "modification_kind": ["NÃ£o", "Decorado (R$/mÂ²)", "Facility (R$/mÂ²)"],
                     "periodicity": [
                         "Sinal",
                         "Entrada",
                         "Mensais",
                         "Semestrais",
-                        "Única",
+                        "Ãšnica",
                         "Permuta",
                         "Anuais",
-                        "Veículo",
-                        "Financ. Bancário",
+                        "VeÃ­culo",
+                        "Financ. BancÃ¡rio",
                         "Financ. Direto",
                     ],
-                    "financing_kind": ["Financ. Bancário", "Financ. Direto"],
+                    "financing_kind": ["Financ. BancÃ¡rio", "Financ. Direto"],
                     "adjustment_type": [
                         "Fixas Irreajustaveis",
                         "INCC",
@@ -166,38 +256,63 @@ class DatabaseReferenceService:
                 raise KeyError(f"Unknown unit: {enterprise_name}|{unit_code}")
 
             enterprise = unit.enterprise
-            
-            # Busca o fluxo padrão real do banco
-            db_flows = db.query(UnitStandardFlow).filter_by(enterprise_id=enterprise.id).order_by(UnitStandardFlow.row_slot).all()
-            
+            product_context = _runtime_product_defaults(unit, enterprise)
+            analysis_date = date.fromisoformat(product_context["default_analysis_date"])
+
+            db_flows = (
+                db.query(UnitStandardFlow)
+                .filter_by(enterprise_id=enterprise.id)
+                .order_by(UnitStandardFlow.row_slot)
+                .all()
+            )
+
             slots = _get_empty_slots()
-            
-            # Preenche os slots com os dados do banco
-            for i, db_flow in enumerate(db_flows):
-                if i < len(slots):
-                    # Calcula o valor absoluto baseado no base_price da unidade
-                    installment_value = round(unit.base_price * db_flow.percent, 2)
-                    slots[i].update({
-                        "installment_count": db_flow.installment_count,
-                        "periodicity": db_flow.periodicity,
-                        "start_month": db_flow.start_month,
+
+            for index, db_flow in enumerate(db_flows):
+                slot_index = (
+                    db_flow.row_slot - 39
+                    if db_flow.row_slot is not None and 39 <= db_flow.row_slot <= 58
+                    else index
+                )
+                if not 0 <= slot_index < len(slots):
+                    continue
+
+                periodicity = _normalize_runtime_periodicity(db_flow.periodicity, index)
+                installment_count = db_flow.installment_count or 0
+                installment_value = round(unit.base_price * (db_flow.percent or 0.0), 2)
+
+                slots[slot_index].update(
+                    {
+                        "row_slot": db_flow.row_slot or slots[slot_index]["row_slot"],
+                        "installment_count": installment_count,
+                        "periodicity": periodicity,
+                        "start_month": _start_month_to_iso(
+                            db_flow.start_month,
+                            periodicity,
+                            analysis_date,
+                            enterprise.delivery_month,
+                        ),
                         "installment_value": installment_value,
                         "percent": db_flow.percent,
-                        "total_vgv": installment_value * db_flow.installment_count,
-                    })
+                        "total_vgv": round(installment_value * installment_count, 2),
+                        "adjustment_type": _default_adjustment_type(periodicity),
+                    }
+                )
 
-            # Se ainda estiver vazio (sem fluxo cadastrado), aplica o fallback de 100% sinal
             if not db_flows and unit.base_price > 0:
-                slots[0].update({
-                    "installment_count": 1,
-                    "periodicity": "Sinal",
-                    "installment_value": unit.base_price,
-                    "percent": 1.0,
-                    "total_vgv": unit.base_price,
-                })
+                slots[0].update(
+                    {
+                        "installment_count": 1,
+                        "periodicity": "Sinal",
+                        "installment_value": unit.base_price,
+                        "percent": 1.0,
+                        "total_vgv": unit.base_price,
+                        "adjustment_type": "Fixas Irreajustaveis",
+                    }
+                )
 
             return {
-                "product_context": _runtime_product_defaults(unit, enterprise),
+                "product_context": product_context,
                 "default_sale_flow_rows": slots,
                 "default_exchange_flow_rows": [dict(s) for s in slots],
                 "commercial_context": {
@@ -237,7 +352,7 @@ class DatabaseReferenceService:
                 "reference_row": {
                     "Valor Total": unit.base_price,
                     "Area Privativa Total (m2)": unit.private_area_m2,
-                    "N° Escaninho": unit.garage_code,
+                    "NÂ° Escaninho": unit.garage_code,
                     "Status": unit.status,
                 },
                 "product_row": {

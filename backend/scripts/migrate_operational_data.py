@@ -1,50 +1,81 @@
 import sys
 from pathlib import Path
-from datetime import date, datetime
 
 # Permite importar os módulos da app
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from openpyxl import load_workbook
 from sqlalchemy.orm import Session
 
+from app.db.base import Base
 from app.db.session import engine
-from app.db.base import Base # Garante que todos os modelos estão carregados para create_all
 from app.models.enterprise import Enterprise
-from app.models.unit_standard_flow import UnitStandardFlow
 from app.models.real_estate_agency import RealEstateAgency
+from app.models.unit_standard_flow import UnitStandardFlow
+from app.services.label_normalizer import normalize_periodicity_label
 
 WORKBOOK_SOURCE_DIR = (
-    Path(__file__).resolve().parents[2]
-    / "projects-docs" / "references" / "source-of-truth"
+    Path(__file__).resolve().parents[2] / "projects-docs" / "references" / "source-of-truth"
 )
 FLOW_SHEET = "Tabela Venda - Parcela"
 IMOBS_SHEET = "Imobs"
 
+SALE_ROW_SLOT_MAP = {
+    "Sinal": 39,
+    "Entrada": 40,
+    "Mensais": 43,
+    "Semestrais": 44,
+    "Única": 45,
+    "Unica": 45,
+    "Anuais": 46,
+    "Permuta": 54,
+    "Veículo": 55,
+    "Veiculo": 55,
+    "Financ. Bancário": 56,
+    "Financ. Bancario": 56,
+    "Financ. Direto": 57,
+}
+
+
 def _to_float(value, default=0.0):
-    if value is None: return default
-    try: return float(value)
-    except: return default
+    if value is None:
+        return default
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
 
 def _to_int(value, default=0):
-    if value is None: return default
-    try: return int(float(value))
-    except: return default
+    if value is None:
+        return default
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _row_slot_for(periodicity: str, fallback_slot: int) -> int:
+    normalized = normalize_periodicity_label(periodicity) or periodicity
+    return SALE_ROW_SLOT_MAP.get(normalized, fallback_slot)
+
 
 def extract_sheet_rows(wb, sheet_name):
     if sheet_name not in wb.sheetnames:
         return []
     ws = wb[sheet_name]
     rows = list(ws.iter_rows(values_only=True))
-    if not rows: return []
+    if not rows:
+        return []
     headers = [str(h) if h is not None else "" for h in rows[0]]
     return [dict(zip(headers, row)) for row in rows[1:] if any(v is not None for v in row)]
 
+
 def migrate():
-    # Cria as tabelas caso não existam (homologação rápida)
     print("Sincronizando schema do banco...")
     Base.metadata.create_all(bind=engine)
 
@@ -60,66 +91,69 @@ def migrate():
     print(f"  Imobiliárias lidas: {len(imobs_rows)}")
 
     with Session(engine) as session:
-        # --- Limpeza Prévia (Opcional, mas útil para re-rodar) ---
-        # session.query(UnitStandardFlow).delete()
-        # session.query(RealEstateAgency).delete()
-        
-        # --- Imobiliárias ---
-        existing_imobs = {i.name for i in session.query(RealEstateAgency.name).all()}
+        existing_imobs = {item.name for item in session.query(RealEstateAgency.name).all()}
         new_imobs = []
         for row in imobs_rows:
-            name = row.get("Imobiliaria") or row.get("Nome") or row.get("Imobiliária") # Tenta nomes comuns
-            if not name: continue
-            name = str(name).strip()
-            if name not in existing_imobs:
-                new_imobs.append(RealEstateAgency(name=name, is_active=True))
-                existing_imobs.add(name)
+            name = row.get("Imobiliaria") or row.get("Nome") or row.get("Imobiliária")
+            if not name:
+                continue
+            normalized_name = str(name).strip()
+            if normalized_name not in existing_imobs:
+                new_imobs.append(RealEstateAgency(name=normalized_name, is_active=True))
+                existing_imobs.add(normalized_name)
 
         if new_imobs:
             session.bulk_save_objects(new_imobs)
-            print(f"  ✅ Imobiliárias inseridas: {len(new_imobs)}")
+            print(f"  Imobiliárias inseridas: {len(new_imobs)}")
 
-        # --- Fluxos Padrão ---
-        enterprise_map = {e.name: e.id for e in session.query(Enterprise).all()}
-        
+        enterprise_map = {enterprise.name: enterprise.id for enterprise in session.query(Enterprise).all()}
+
         new_flows = []
         skipped_flows = 0
-        
-        # O Excel agrupa por 'Nome da Origem' (Empreendimento)
-        # Vamos usar um contador para gerar o row_slot sequencial por empreendimento
         slots_counter = {}
 
         for row in flow_rows:
-            ent_name = str(row.get("Nome da Origem") or "")
-            ent_id = enterprise_map.get(ent_name)
-            if not ent_id:
+            enterprise_name = str(row.get("Nome da Origem") or "").strip()
+            enterprise_id = enterprise_map.get(enterprise_name)
+            if not enterprise_id:
                 skipped_flows += 1
                 continue
 
-            if ent_id not in slots_counter:
-                slots_counter[ent_id] = 39 # Começa no slot 39 (padrão da UI)
+            periodicity = normalize_periodicity_label(row.get("Nomeclatura das Parcelas")) or ""
+            if enterprise_id not in slots_counter:
+                slots_counter[enterprise_id] = 39
 
-            new_flows.append(UnitStandardFlow(
-                enterprise_id=ent_id,
-                periodicity=str(row.get("Parcela") or row.get("Frequencia") or ""),
-                installment_count=_to_int(row.get("N° Parcelas"), 1),
-                start_month=_to_int(row.get("Meses"), 0),
-                installment_value=0.0, # Valor absoluto é 0 na tabela, pois é baseado em %
-                percent=_to_float(row.get("Pcs")),
-                row_slot=slots_counter[ent_id]
-            ))
-            slots_counter[ent_id] += 1
+            fallback_slot = slots_counter[enterprise_id]
+            row_slot = _row_slot_for(periodicity, fallback_slot)
+
+            new_flows.append(
+                UnitStandardFlow(
+                    enterprise_id=enterprise_id,
+                    periodicity=periodicity,
+                    installment_count=_to_int(row.get("N° Parcelas"), 1),
+                    start_month=_to_int(row.get("Inicio Serie2"), 0),
+                    installment_value=0.0,
+                    percent=_to_float(row.get("Pcs")),
+                    row_slot=row_slot,
+                )
+            )
+
+            slots_counter[enterprise_id] = max(slots_counter[enterprise_id] + 1, row_slot + 1)
 
         if new_flows:
-            # Remove fluxos antigos antes de inserir novos para evitar duplicidade na recarga
-            all_affected_ents = list(slots_counter.keys())
-            session.query(UnitStandardFlow).filter(UnitStandardFlow.enterprise_id.in_(all_affected_ents)).delete(synchronize_session=False)
-            
+            affected_enterprises = list(slots_counter.keys())
+            (
+                session.query(UnitStandardFlow)
+                .filter(UnitStandardFlow.enterprise_id.in_(affected_enterprises))
+                .delete(synchronize_session=False)
+            )
             session.bulk_save_objects(new_flows)
-            print(f"  ✅ Linhas de fluxo inseridas: {len(new_flows)}")
-        
+            print(f"  Linhas de fluxo inseridas: {len(new_flows)}")
+
         session.commit()
-        print(f"\n🚀 Migração operacional concluída!")
+        print(f"  Fluxos ignorados por empreendimento ausente: {skipped_flows}")
+        print("\nMigração operacional concluída.")
+
 
 if __name__ == "__main__":
     migrate()

@@ -6,8 +6,6 @@ import {
   Database,
   FileSpreadsheet,
   Home,
-  Landmark,
-  Sparkles,
 } from 'lucide-react';
 
 import { services } from './api/services';
@@ -105,16 +103,6 @@ function App() {
               </div>
             </div>
 
-            <div className="mb-8 rounded-[28px] border border-white/8 bg-white/4 p-5">
-              <div className="mb-2 flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.24em] text-[#cdbfae]">
-                <Sparkles className="h-3.5 w-3.5 text-city-blue" />
-                Sistema operacional
-              </div>
-              <p className="text-sm leading-6 text-[#f0e6d8]">
-                O menu controla a navegação inteira, mas a rolagem acontece só no workspace.
-                Isso preserva o shell e evita que a navegação “ande” junto com o conteúdo.
-              </p>
-            </div>
 
             <nav className="flex flex-col gap-2">
               <button
@@ -184,16 +172,6 @@ function App() {
             </nav>
           </div>
 
-          <div className="rounded-[28px] border border-[#3a383f] bg-[#2a282f] p-5 text-sm text-[#d8cebf]">
-            <div className="mb-2 flex items-center gap-2 text-[0.7rem] uppercase tracking-[0.24em] text-[#ffcf97]">
-              <Landmark className="h-3.5 w-3.5 text-city-blue" />
-              Regra operacional
-            </div>
-            <p className="leading-6">
-              A planilha continua como fonte de verdade da engenharia reversa, mas o runtime
-              oficial fica no banco e no backoffice.
-            </p>
-          </div>
         </aside>
 
         <section className="workspace-panel m-2.5 flex min-w-0 flex-1 flex-col overflow-hidden rounded-[30px] md:m-3.5">

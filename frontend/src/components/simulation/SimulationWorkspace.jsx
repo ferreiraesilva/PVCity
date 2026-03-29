@@ -7,7 +7,7 @@ import { Input } from '../shared/Input';
 import { Select } from '../shared/Select';
 import { ProposalForm } from '../proposal/ProposalForm';
 import { SummaryCard } from '../results/SummaryCard';
-import { MonthlyFlow } from '../results/MonthlyFlow';
+import { EconomicIndicators } from '../results/EconomicIndicators';
 import { useScenarioState } from '../../hooks/useScenarioState';
 import { services } from '../../api/services';
 
@@ -258,16 +258,11 @@ export function SimulationWorkspace({ referenceData }) {
 
       <aside className="flex flex-col gap-6 xl:col-span-4">
         <Card>
-          <div className="mb-4 flex items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-city-blue-dark">Resumo e simulação</h2>
-              <p className="mt-1 text-sm text-text-muted">
-                O cálculo só é liberado depois de selecionar empreendimento, unidade e data-base.
-              </p>
-            </div>
-            <div className="flex max-w-full items-center gap-2 overflow-x-auto rounded-full border border-[#e5d7c3] bg-[#fff8ef] p-1">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-city-blue-dark">Resumo e simulação</h2>
+            <div className="mt-3 flex w-full items-center gap-1 rounded-full border border-[#e5d7c3] bg-[#fff8ef] p-1">
               <button
-                className={`cursor-pointer whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                className={`flex-1 cursor-pointer whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   !isPermuta
                     ? 'bg-city-blue text-city-blue-dark shadow-sm'
                     : 'text-text-muted hover:text-text-main'
@@ -277,7 +272,7 @@ export function SimulationWorkspace({ referenceData }) {
                 Venda Normal
               </button>
               <button
-                className={`flex cursor-pointer items-center gap-2 whitespace-nowrap rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                className={`flex flex-1 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors ${
                   isPermuta
                     ? 'bg-city-blue text-city-blue-dark shadow-sm'
                     : 'text-text-muted hover:text-text-main'
@@ -302,7 +297,12 @@ export function SimulationWorkspace({ referenceData }) {
           <SummaryCard summary={summary} warnings={result?.warnings} isPermuta={isPermuta} />
         </Card>
 
-        <MonthlyFlow flow={monthlyFlow} />
+        <EconomicIndicators
+          result={result}
+          productContext={state.productContext}
+          selectedUnit={selectedUnit}
+          isPermuta={isPermuta}
+        />
       </aside>
     </main>
   );

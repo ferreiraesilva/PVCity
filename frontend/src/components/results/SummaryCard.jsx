@@ -72,10 +72,24 @@ export function SummaryCard({ summary, warnings, isPermuta }) {
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="rounded-[22px] border border-border-color bg-[#fffdf9] p-4">
-          <div className="mb-1 flex items-center gap-2 text-text-muted">
-            <TrendingUp className="h-4 w-4" />
-            <span className="text-sm font-medium">Captura Total</span>
+        <div className="relative rounded-[22px] border border-border-color bg-[#fffdf9] p-4">
+          <div className="mb-1 flex items-center justify-between text-text-muted">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4" />
+              <span className="text-sm font-medium">Captura Total</span>
+            </div>
+
+            <div className="group relative">
+              <Info className="h-4 w-4 cursor-help text-text-muted hover:text-text-main" />
+              <div className="invisible absolute right-0 top-6 z-10 w-64 rounded-[18px] border border-border-color bg-[#fffdf9] p-3 shadow-xl opacity-0 transition-opacity group-hover:visible group-hover:opacity-100">
+                <div className="mb-1 text-xs font-bold uppercase text-text-muted">Entenda a Captura</div>
+                <p className="text-xs leading-relaxed text-text-main">
+                  Representa o percentual do preço base da unidade que está sendo efetivamente
+                  coberto pelo fluxo da proposta. Valores abaixo de 100% indicam que a proposta
+                  não atinge o Valor Total de tabela da unidade.
+                </p>
+              </div>
+            </div>
           </div>
           <div className="text-2xl font-bold text-text-main">{formatPct(capture_total_percent)}</div>
         </div>
