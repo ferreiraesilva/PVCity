@@ -50,6 +50,8 @@ O trabalho só é considerado concluído quando:
 - frontend React + Tailwind
 - backend Python
 - banco de dados MSSQLServer 2022 (informações de conexão via variável de ambiente)
+- módulo administrativo para manutenção dos cadastros operacionais
+- importação CSV para carga e atualização de cadastros
 - cálculo do fluxo
 - cálculo do PV
 - cálculo com permuta
@@ -64,6 +66,28 @@ O trabalho só é considerado concluído quando:
 - gestão do ativo recebido em permuta após a negociação
 - integrações externas não necessárias para reproduzir o Excel
 - capacidades além do que a planilha já suporta hoje
+
+## Cadastros operacionais que devem existir fora da planilha
+Como o objetivo do projeto é aposentar o uso operacional do Excel, os cadastros variáveis do negócio devem ser mantidos no sistema.
+
+Cadastros mínimos já identificados:
+- empreendimentos
+- unidades
+- estrutura padrão de pagamento por empreendimento
+- imobiliárias parceiras
+
+Cadastros operacionais complementares que devem ser tratados como evolução natural do mesmo módulo:
+- parâmetros default de comissão e prêmio
+- parâmetros de visibilidade e ativação de cadastros
+
+## Diretriz de produto para backoffice
+O frontend deve prever uma área administrativa com menu lateral para manutenção de cadastros.
+
+Esse módulo deve:
+1. listar os grupos de cadastro
+2. permitir CRUD completo dos registros operacionais
+3. permitir importação via CSV para carga inicial e atualização em lote
+4. separar claramente operação do sistema e artefatos de paridade com a planilha
 
 ## Estratégia de execução
 O trabalho será conduzido em duas frentes coordenadas.

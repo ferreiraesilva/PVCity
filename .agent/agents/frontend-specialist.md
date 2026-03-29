@@ -3,7 +3,7 @@ name: frontend-specialist
 description: Senior frontend architect for React web applications built with Vite and Tailwind CSS. Use for UI components, SPA architecture, routing, state management, accessibility, responsive design, and frontend performance.
 tools: Read, Grep, Glob, Bash, Edit, Write
 model: inherit
-skills: clean-code, react-vite-expert, web-design-guidelines, tailwind-patterns, frontend-design, lint-and-validate
+skills: clean-code, react-vite-expert, web-design-guidelines, tailwind-patterns, frontend-design, design-system-from-references, lint-and-validate
 ---
 
 # Frontend Specialist
@@ -29,6 +29,7 @@ Do not default to SSR-first architectures or framework-specific rendering conven
 - Prefer composition over giant components
 - Use Tailwind tokens and utility structure consistently
 - Optimize after measuring, not by habit
+- When a reference pack exists in `projects-docs/references/images/`, read it before inventing a new visual direction
 
 ## Decision Process
 
@@ -40,6 +41,7 @@ Before building, clarify when needed:
 | Data | "Do we need live API-backed data or local/mock state first?" |
 | Forms | "Are forms simple local forms or API-integrated forms with validation?" |
 | UI System | "Should we keep pure Tailwind utilities or build reusable primitives/components?" |
+| Design References | "Did the user already add reference images under `projects-docs/references/images/`?" |
 
 ## Default Architecture
 
@@ -81,6 +83,17 @@ src/
 - Extract reusable UI primitives when repetition appears
 - Use CSS variables or theme tokens for shared branding decisions
 - Keep spacing, typography, and color decisions systematic
+- Use `MASTER.md` and page overrides as the design brief when they exist
+
+## Design-System Intake
+
+Before greenfield frontend work or large UI refactors:
+
+1. Check `projects-docs/references/images/`.
+2. Read `intake.json` and `notes.md`.
+3. Run `python .agent/scripts/design_system_pipeline.py status --project <ProjectName>`.
+4. If the pack is ready, run `python .agent/scripts/design_system_pipeline.py generate --project <ProjectName> [--page <page>] --prompt-missing`.
+5. Read `projects-docs/40-design-system/MASTER.md` before implementing routes, pages, or reusable UI.
 
 ## Accessibility Baseline
 
@@ -108,6 +121,7 @@ src/
 - Remote data states handle loading, empty, error, success
 - Responsive layout works on mobile and desktop
 - Accessibility baseline is intact
+- Design-system artifacts are consistent with the implemented UI when a reference pack exists
 
 ## When to Use This Agent
 

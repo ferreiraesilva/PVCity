@@ -1,20 +1,24 @@
+from datetime import date
+
 from fastapi import APIRouter, HTTPException
 from typing import Any, Dict, List, Optional
 
 from app.schemas.scenarios import CalculationRequest, ScenarioMode
+from app.services.label_normalizer import is_financing_periodicity
 from app.services.scenario_builder import ScenarioBuilder, ProposalLineNormalizer, RatesResolver
 from app.services.monthly_schedule_engine import MonthlyScheduleEngine, IndirectCommissionEvent
 from app.services.commission_calculator import CommissionBaseCalculator
 from app.services.summary_engine import SummaryEngine, NormalSummary, PermutaSummary
 from app.services.payload_validator import PayloadValidator
-from app.services.parity_guard import ParityTraceEntry
+from app.services.database_reference_service import DatabaseReferenceService
 
 router = APIRouter()
+reference_service = DatabaseReferenceService()
 
 # ---------------------------------------------------------------------------
-# Placeholders — TODO:DB resolve from tbCadastroProduto and PRC+COORD
+# Placeholder until PRC + COORD is fully modeled in the runtime domain.
+# Workbook remains parity-only; operational flow must not depend on it.
 # ---------------------------------------------------------------------------
-PLACEHOLDER_VPL_RATE = 0.10       # J7: tbCadastroProduto.default_vpl_rate_annual
 PLACEHOLDER_PRC_COORD_O34 = 100523.302  # PRC+COORD!O34 raw (before spread)
 
 
@@ -54,6 +58,35 @@ def _build_parity_trace(
     ]
 
 
+def _sum_total_vgv(rows: list[Any]) -> float:
+    return sum((row.total_vgv or 0.0) for row in rows)
+
+
+def _financing_metrics(rows: list[Any]) -> tuple[float, date | None]:
+    total_vgv = 0.0
+    start_month: date | None = None
+    for row in rows:
+        if not is_financing_periodicity(row.periodicity):
+            continue
+        total_vgv += row.total_vgv or 0.0
+        if start_month is None and row.start_month is not None:
+            start_month = row.start_month
+    return total_vgv, start_month
+
+
+def _base_financing_metrics(rows: list[dict[str, Any]]) -> tuple[float, date | None]:
+    for row in rows:
+        if not is_financing_periodicity(row.get("periodicity")):
+            continue
+        start_month = (
+            date.fromisoformat(row["start_month"])
+            if row.get("start_month")
+            else None
+        )
+        return float(row.get("percent") or 0.0), start_month
+    return 0.0, None
+
+
 @router.post("", response_model=None)
 def calculate(request: CalculationRequest):
     """
@@ -70,6 +103,22 @@ def calculate(request: CalculationRequest):
     # --- Step 1: Validate ---
     validator = PayloadValidator()
     warnings = validator.validate(request)
+    try:
+        workbook_reference = reference_service.get_product_reference(
+            request.product_context.enterprise_name,
+            request.product_context.unit_code,
+        )
+        workbook_defaults = reference_service.get_unit_defaults(
+            request.product_context.enterprise_name,
+            request.product_context.unit_code,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    reference_row = workbook_reference["reference_row"]
+    product_row = workbook_reference["product_row"]
+    base_financing_percent, base_financing_start_month = _base_financing_metrics(
+        workbook_defaults["default_sale_flow_rows"]
+    )
 
     # --- Step 2: Build domain objects ---
     builder = ScenarioBuilder(
@@ -77,7 +126,9 @@ def calculate(request: CalculationRequest):
         rates_resolver=RatesResolver(),
     )
     is_permuta = request.scenario_mode == ScenarioMode.PERMUTA
-    rates = builder.build_rates(PLACEHOLDER_VPL_RATE)
+    vpl_rate_annual = float(product_row.get("VPL") or 0.0)
+    enterprise_discount_percent = float(product_row.get("Descontos (%)") or 0.0)
+    rates = builder.build_rates(vpl_rate_annual)
 
     # --- Step 3: Run normal flow engine (always needed for permuta reference) ---
     sale_rows = builder.build_sale_rows(request)
@@ -95,11 +146,22 @@ def calculate(request: CalculationRequest):
     normal_flow = normal_engine.build()
     normal_events = normal_engine.build_events()
 
-    # --- Step 4: Commission ---
+        # --- Step 3b: Standard (reference) flow  PV do fluxo padrao da unidade ---
+    standard_pv_net: float = 0.0
+    if request.standard_flow_rows:
+        std_rows = builder.build_rows_from_lines(request.standard_flow_rows)
+        std_engine = MonthlyScheduleEngine(
+            proposal_rows=std_rows,
+            rates=rates,
+            indirect_commission=indirect_event,
+            analysis_date=request.product_context.analysis_date,
+        )
+        std_flow = std_engine.build()
+        standard_pv_net = round(std_flow.total_pv_net, 2)
+
+# --- Step 4: Commission ---
     commission_calc = CommissionBaseCalculator()
-    proposal_total_vgv = sum(
-        (row.total_vgv or 0.0) for row in request.sale_flow_rows
-    )
+    proposal_total_vgv = _sum_total_vgv(request.sale_flow_rows)
     commission = commission_calc.calculate(
         context=request.commission_context,
         base_vgv=proposal_total_vgv,
@@ -110,23 +172,28 @@ def calculate(request: CalculationRequest):
 
     # --- Step 5: Summaries ---
     summary_engine = SummaryEngine()
-    # capture_total = financing rows VGV / proposal_total_vgv
-    financing_rows_total = sum(
-        (row.total_vgv or 0.0)
-        for row in request.sale_flow_rows
-        if row.periodicity in ("Financ. Bancário", "Financ. Direto")
+    financing_rows_total, financing_start_month = _financing_metrics(request.sale_flow_rows)
+    financing_level_ratio = (
+        financing_rows_total / proposal_total_vgv if proposal_total_vgv else 0.0
     )
-    capture_total = financing_rows_total / proposal_total_vgv if proposal_total_vgv else 0.0
-
-    # Placeholder base price — TODO:DB from Referencias
-    base_price = proposal_total_vgv
+    base_price = float(reference_row.get("Valor Total") or proposal_total_vgv)
+    prize_commission_percent = (
+        request.commission_context.prize_commission_percent or 0.0
+        if request.product_context.prize_enabled
+        else 0.0
+    )
 
     normal_summary = summary_engine.build_normal(
         flow_summary=normal_flow,
         commission=commission,
         base_price=base_price,
         proposal_total_vgv=proposal_total_vgv,
-        capture_total_percent=capture_total,
+        standard_pv_net=standard_pv_net,
+        financing_level_ratio=financing_level_ratio,
+        enterprise_discount_percent=enterprise_discount_percent,
+        prize_commission_percent=prize_commission_percent,
+        base_financing_percent=base_financing_percent,
+        financing_date_matches_base=financing_start_month == base_financing_start_month,
     )
 
     # --- Step 6: Permuta (conditional) ---
@@ -145,22 +212,12 @@ def calculate(request: CalculationRequest):
         exchange_flow = exchange_engine.build()
         exchange_events = exchange_engine.build_events()
 
-        exchange_vgv = sum(
-            (row.total_vgv or 0.0) for row in request.exchange_flow_rows
+        exchange_vgv = _sum_total_vgv(request.exchange_flow_rows)
+        exchange_financing_total, exchange_financing_start_month = _financing_metrics(
+            request.exchange_flow_rows
         )
-        exchange_financing_total = sum(
-            (row.total_vgv or 0.0)
-            for row in request.exchange_flow_rows
-            if row.periodicity in ("Financ. Bancário", "Financ. Direto")
-        )
-        exchange_capture = exchange_financing_total / exchange_vgv if exchange_vgv else 0.0
-
-        # financing_date_status for permuta: mark NOK if financing date > delivery + 1 month
-        # Placeholder logic; full date comparison deferred to DB flag
-        has_financing_date_issue = any(
-            row.start_month is not None and row.start_month > request.product_context.delivery_month
-            for row in request.exchange_flow_rows
-            if row.periodicity in ("Financ. Bancário", "Financ. Direto")
+        exchange_financing_level_ratio = (
+            exchange_financing_total / exchange_vgv if exchange_vgv else 0.0
         )
 
         permuta_summary = summary_engine.build_permuta(
@@ -168,8 +225,11 @@ def calculate(request: CalculationRequest):
             commission=commission,
             normal_summary=normal_summary,
             exchange_total_vgv=exchange_vgv,
-            capture_total_percent=exchange_capture,
-            has_financing_date_issue=has_financing_date_issue,
+            financing_level_ratio=exchange_financing_level_ratio,
+            enterprise_discount_percent=enterprise_discount_percent,
+            permuta_commission_percent=commission.total_percent,
+            base_financing_percent=base_financing_percent,
+            financing_date_matches_base=exchange_financing_start_month == base_financing_start_month,
         )
 
     # --- Build response ---
@@ -177,13 +237,13 @@ def calculate(request: CalculationRequest):
         return {
             "month": e.month.isoformat(),
             "month_offset": e.month_offset,
-            "gross_adjustable": e.gross_adjustable,
-            "gross_fixed": e.gross_fixed,
-            "direct_commission": e.direct_commission,
-            "indirect_commission": e.indirect_commission,
-            "pv_adjustable": e.pv_adjustable,
-            "pv_fixed": e.pv_fixed,
-            "pv_net": e.pv_net,
+            "gross_adjustable": round(e.gross_adjustable, 2),
+            "gross_fixed": round(e.gross_fixed, 2),
+            "direct_commission": round(e.direct_commission, 2),
+            "indirect_commission": round(e.indirect_commission, 2),
+            "pv_adjustable": round(e.pv_adjustable, 2),
+            "pv_fixed": round(e.pv_fixed, 2),
+            "pv_net": round(e.pv_net, 2),
         }
 
     def _normal_summary_dict(s: NormalSummary) -> Dict:
@@ -191,6 +251,7 @@ def calculate(request: CalculationRequest):
             "table_total_vgv": s.table_total_vgv,
             "proposal_total_vgv": s.proposal_total_vgv,
             "proposal_total_pv": s.proposal_total_pv,
+            "standard_total_pv": s.standard_total_pv,
             "pv_variation_percent": s.pv_variation_percent,
             "commission_total_percent": s.commission_total_percent,
             "commission_total_value": s.commission_total_value,
@@ -200,6 +261,7 @@ def calculate(request: CalculationRequest):
             "financing_date_status": s.financing_date_status,
             "capture_total_percent": s.capture_total_percent,
             "risk_level": s.risk_level,
+            "risk_reasons": s.risk_reasons,
         }
 
     def _permuta_summary_dict(s: PermutaSummary) -> Dict:
@@ -213,6 +275,7 @@ def calculate(request: CalculationRequest):
             "financing_date_status": s.financing_date_status,
             "capture_total_percent": s.capture_total_percent,
             "risk_level": s.risk_level,
+            "risk_reasons": s.risk_reasons,
         }
 
     return {

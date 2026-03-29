@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api.v1.endpoints import scenarios, bootstrap, products, scenario_store, parity
+from app.api.v1.endpoints import admin, scenarios, bootstrap, products, scenario_store, parity
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -44,6 +44,12 @@ app.include_router(
     parity.router,
     prefix=f"{settings.API_V1_STR}/parity",
     tags=["parity"],
+)
+
+app.include_router(
+    admin.router,
+    prefix=f"{settings.API_V1_STR}/admin",
+    tags=["admin"],
 )
 
 

@@ -43,7 +43,7 @@ The main agent routing for the standardized stack is:
 
 | Agent | Primary Focus | Default Skills |
 |---|---|---|
-| `frontend-specialist` | React web UI, Vite, Tailwind, SPA architecture | `frontend-design`, `react-vite-expert`, `tailwind-patterns` |
+| `frontend-specialist` | React web UI, Vite, Tailwind, SPA architecture | `frontend-design`, `react-vite-expert`, `tailwind-patterns`, `design-system-from-references` |
 | `backend-specialist` | FastAPI, business logic, API design, integration | `python-patterns`, `api-patterns`, `database-design` |
 | `database-architect` | Schema design, SQL, migrations, indexing | `database-design` |
 | `devops-engineer` | Deployment, environments, rollback, preview ops | `deployment-procedures`, `docker-expert`, `server-management` |
@@ -67,6 +67,7 @@ All other agents remain available for specialized domains such as mobile, game d
 | `react-vite-expert` | React SPA architecture, Vite workflows, React Router, TanStack Query, forms, performance |
 | `frontend-design` | UI/UX thinking, layout, accessibility, design decisions |
 | `tailwind-patterns` | Tailwind CSS architecture and component styling patterns |
+| `design-system-from-references` | Builds reusable design-system artifacts from reference images stored in `projects-docs/references/images/` and persists them in `projects-docs/40-design-system/` |
 | `python-patterns` | Python structure, async decisions, typing, FastAPI thinking |
 | `api-patterns` | REST, OpenAPI, request/response shape, auth and validation |
 | `database-design` | Schema design, migrations, indexing, normalization |
@@ -116,6 +117,7 @@ Examples:
 | `/deploy` | Production/staging deployment flow |
 | `/status` | Summarize project and work progress |
 | `/brainstorm` | Clarify goals, users, and scope |
+| `/design-system` | Build or refresh a frontend design system from local reference images |
 | `/ui-ux-pro-max` | Use shared design references, prioritizing React or HTML + Tailwind |
 
 ---
@@ -128,8 +130,8 @@ The intended software-delivery journey in this workspace is:
 |---|---|---|
 | Ideation | `product-manager`, `product-owner` | `/brainstorm`, `brainstorming` |
 | Discovery | `explorer-agent` | survey/intel flows, `architecture`, `systematic-debugging` |
-| Planning | `project-planner` | `/plan`, `plan-writing`, `app-builder` |
-| Implementation | `frontend-specialist`, `backend-specialist`, `database-architect`, `orchestrator` | `/create`, `/enhance`, `react-vite-expert`, `python-patterns` |
+| Planning | `project-planner` | `/plan`, `plan-writing`, `app-builder`, `/design-system` when frontend direction is missing |
+| Implementation | `frontend-specialist`, `backend-specialist`, `database-architect`, `orchestrator` | `/create`, `/enhance`, `/design-system`, `react-vite-expert`, `python-patterns` |
 | Validation | `test-engineer`, `qa-automation-engineer`, `security-auditor`, `performance-optimizer` | `/test`, `checklist.py`, `verify_all.py` |
 | Preview | `devops-engineer` | `/preview`, `auto_preview.py` |
 | Publication | `devops-engineer` | `/deploy`, `deployment-procedures`, `docker-expert` |
@@ -147,6 +149,8 @@ Top-level script runners:
 - `.agent/scripts/verify_all.py`
 - `.agent/scripts/auto_preview.py`
 - `.agent/scripts/session_manager.py`
+- `.agent/scripts/design_system_pipeline.py`
+- `.agent/scripts/recalc_xlsx.py`
 
 Key referenced skill scripts:
 
@@ -163,6 +167,23 @@ Key referenced skill scripts:
 - `.agent/skills/performance-profiling/scripts/bundle_analyzer.py`
 - `.agent/skills/webapp-testing/scripts/playwright_runner.py`
 - `.agent/skills/mobile-design/scripts/mobile_audit.py`
+
+---
+
+## Spreadsheet Recalculation Protocol
+
+When `.xlsx` files are used as source-of-truth or as evidence for final formula outputs:
+
+1. Never assume `openpyxl` recalculates formulas.
+2. Before trusting final cell values, run:
+   `python .agent/scripts/recalc_xlsx.py "<arquivo.xlsx>" "<diretorio_saida>"`
+3. Treat `openpyxl` as structural inspection unless the workbook was recalculated by LibreOffice first.
+4. If recalculation fails because LibreOffice is unavailable, state explicitly that the analysis is structural only, without real recalculation.
+5. In responses, always distinguish between:
+   - real recalculation
+   - logical or structural inspection
+
+Prefer reading results from the recalculated copy and preserve the original workbook as the immutable source artifact.
 
 ---
 

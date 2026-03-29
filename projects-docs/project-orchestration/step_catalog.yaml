@@ -95,8 +95,10 @@ steps:
       cells:
         - "E5"
         - "F8"
+        - "E11"
         - "E6"
         - "H5"
+        - "H11"
         - "K5"
         - "N4:N6"
         - "K9:K12"
@@ -115,7 +117,7 @@ steps:
         - "N4:N6"
     write_artifacts:
       - "projects-docs/10-excel-reverse-engineering/contract_support_dictionaries.md"
-    objective: "Mapear somente os campos necessários para contratos, fluxo e paridade."
+    objective: "Mapear o contexto inicial obrigatório e os campos necessários para contratos, fluxo e paridade."
     evidence_required:
       - "Campo lógico."
       - "Origem em célula ou tabela."
@@ -124,6 +126,7 @@ steps:
       - "Impacto em fórmulas relevantes."
     done_when:
       - "Os grupos de entrada estiverem documentados."
+      - "A dependência empreendimento -> unidade -> data base estiver explícita."
       - "As linhas slotadas da proposta estiverem descritas."
       - "As validações observadas estiverem congeladas."
     do_not_do:
@@ -370,11 +373,14 @@ steps:
     depends_on: [API-01, IMPL-01]
     read_artifacts:
       - "projects-docs/20-domain/api_contracts_draft.md"
+      - "projects-docs/40-design-system/*"
     write_artifacts:
       - "frontend/*"
       - "tests/frontend/*"
     objective: "Montar UI mínima para editar contexto, linhas slotadas e resultados."
     ui_rules:
+      - "Antes de implementar UI nova, verificar `projects-docs/references/images/`."
+      - "Se houver referências visuais, gerar ou atualizar `projects-docs/40-design-system/MASTER.md` antes de construir páginas."
       - "Mostrar trilho normal e trilho permuta."
       - "Preservar row_slot."
       - "Exibir warnings de paridade."
@@ -382,6 +388,76 @@ steps:
       - "Fluxo mínimo de cálculo estiver navegável."
       - "Permuta estiver editável."
       - "Resumo e fluxo mensal estiverem visíveis."
+
+  - id: ADMIN-01
+    phase: domain
+    title: "Planejar módulo administrativo de cadastros"
+    mode: document
+    priority: high
+    depends_on: [DOMAIN-01, API-01]
+    read_artifacts:
+      - "projects-docs/20-domain/domain_model.md"
+      - "projects-docs/20-domain/api_contracts_draft.md"
+      - "backend/app/models/*"
+    write_artifacts:
+      - "projects-docs/20-domain/admin_backoffice_plan.md"
+      - "projects-docs/00-governance/PLAN.md"
+    objective: "Congelar o escopo do backoffice necessário para manter cadastros operacionais fora da planilha."
+    evidence_required:
+      - "Lista de cadastros mínimos."
+      - "Requisitos de CRUD."
+      - "Requisitos de importação CSV."
+      - "Separação explícita entre runtime e workbook."
+    done_when:
+      - "O módulo administrativo estiver descrito."
+      - "Os cadastros críticos estiverem listados."
+      - "A importação CSV estiver prevista."
+
+  - id: IMPL-03
+    phase: implementation
+    title: "Implementar backend administrativo de cadastros e importação CSV"
+    mode: code
+    priority: high
+    depends_on: [IMPL-01, ADMIN-01]
+    read_artifacts:
+      - "projects-docs/20-domain/admin_backoffice_plan.md"
+      - "projects-docs/20-domain/domain_model.md"
+    write_artifacts:
+      - "backend/*"
+      - "tests/backend/*"
+    objective: "Criar os endpoints administrativos, serviços e validações para manutenção operacional dos cadastros."
+    implementation_rules:
+      - "Não depender do workbook no runtime."
+      - "Permitir CRUD por recurso."
+      - "Permitir importação CSV com relatório de processamento."
+      - "Preservar integridade referencial entre empreendimento, unidade e fluxo padrão."
+    done_when:
+      - "CRUDs mínimos responderem."
+      - "Importação CSV existir para os grupos críticos."
+      - "Testes de backend do módulo passarem."
+
+  - id: IMPL-04
+    phase: implementation
+    title: "Implementar backoffice frontend com menu lateral e telas de cadastro"
+    mode: code
+    priority: high
+    depends_on: [IMPL-02, IMPL-03]
+    read_artifacts:
+      - "projects-docs/20-domain/admin_backoffice_plan.md"
+      - "projects-docs/40-design-system/*"
+    write_artifacts:
+      - "frontend/*"
+      - "tests/frontend/*"
+    objective: "Criar a navegação lateral e as telas administrativas de manutenção de cadastros."
+    ui_rules:
+      - "Usar menu lateral para separar cálculo e administração."
+      - "Exibir listagem, criação, edição e exclusão."
+      - "Exibir importação CSV com preview e relatório."
+      - "Manter consistência visual com o design system do projeto."
+    done_when:
+      - "Menu lateral existir."
+      - "Telas mínimas de cadastro existirem."
+      - "Fluxo de importação CSV estiver navegável."
 
   - id: PACK-01
     phase: packaging

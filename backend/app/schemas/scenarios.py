@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
 from enum import Enum
@@ -30,8 +30,8 @@ class ProductContext(BaseModel):
     product_unit_key: str
     garage_code: Optional[str] = None
     private_area_m2: float
-    analysis_date: date
-    delivery_month: date
+    analysis_date: Optional[date] = None
+    delivery_month: Optional[date] = None
     modification_kind: ModificationKind
     decorated_value_per_m2: Optional[float] = None
     facility_value_per_m2: Optional[float] = None
@@ -78,3 +78,5 @@ class CalculationRequest(BaseModel):
     commission_context: CommissionContext
     sale_flow_rows: List[ProposalLine]
     exchange_flow_rows: List[ProposalLine]
+    # Fluxo padrão da unidade — enviado pelo front para cálculo independente do PV de referência
+    standard_flow_rows: List[ProposalLine] = []

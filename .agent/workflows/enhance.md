@@ -17,11 +17,18 @@ This command adds features or makes updates to existing application.
 1. **Understand Current State**
    - Load project state with `python .agent/scripts/session_manager.py info`
    - Understand existing features, tech stack
+   - If the change is frontend-heavy, inspect `projects-docs/40-design-system/` first
+   - If the task depends on `.xlsx` outputs, recalculate the workbook first:
+     `python .agent/scripts/recalc_xlsx.py "<arquivo.xlsx>" "<diretorio_saida>"`
+   - If LibreOffice is unavailable, continue only with structural inspection and state that limitation explicitly
 
 2. **Plan Changes**
    - Determine what will be added/changed
    - Detect affected files
    - Check dependencies
+   - Refresh the visual brief when references exist:
+     `python .agent/scripts/design_system_pipeline.py status --project <ProjectName>`
+     `python .agent/scripts/design_system_pipeline.py generate --project <ProjectName> [--page <page>] --prompt-missing`
 
 3. **Present Plan to User** (for major changes)
    ```

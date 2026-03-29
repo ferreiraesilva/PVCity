@@ -175,7 +175,8 @@ Emitir warning, sem bloquear cálculo, quando houver:
 ## Regras para leitura do source of truth
 - confiar em células visíveis, fórmulas de worksheet e valores efetivos salvos
 - não confiar na metadata quebrada de tabela para regenerar regra
-- não usar LibreOffice ou outro motor para recalcular e substituir a evidência original
+- não substituir o workbook original por uma versão recalculada
+- quando precisar de recálculo real, gerar uma cópia recalculada e distingui-la explicitamente da inspeção estrutural do arquivo original
 - não arredondar cedo demais durante o cálculo
 - não trocar decimal fracionário por percentual textual durante a comparação
 

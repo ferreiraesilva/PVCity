@@ -1,295 +1,153 @@
 ---
-description: Plan and implement UI
----
-
----
-description: AI-powered design intelligence with 50+ styles, 95+ color palettes, and automated design system generation
+description: Plan and implement UI with shared design intelligence and the local design-system pipeline
 ---
 
 # ui-ux-pro-max
 
-Comprehensive design guide for web and mobile applications. Contains 50+ styles, 97 color palettes, 57 font pairings, 99 UX guidelines, and 25 chart types across 9 technology stacks. Searchable database with priority-based recommendations.
+Workflow for UI planning and implementation in this workspace. It combines the shared `ui-ux-pro-max` search dataset with the local React + Tailwind design-system wrapper.
 
 ## Prerequisites
 
-Check if Python is installed:
+Check whether Python is available:
 
 ```bash
 python3 --version || python --version
 ```
 
-If Python is not installed, install it based on user's OS:
+If Python is missing, install it for the current OS before using the shared search scripts.
 
-**macOS:**
-```bash
-brew install python3
-```
+## Step 0: Check Local References First
 
-**Ubuntu/Debian:**
-```bash
-sudo apt update && sudo apt install python3
-```
-
-**Windows:**
-```powershell
-winget install Python.Python.3.12
-```
-
----
-
-## How to Use This Workflow
-
-When user requests UI/UX work (design, build, create, implement, review, fix, improve), follow this workflow:
-
-### Step 1: Analyze User Requirements
-
-Extract key information from user request:
-- **Product type**: SaaS, e-commerce, portfolio, dashboard, landing page, etc.
-- **Style keywords**: minimal, playful, professional, elegant, dark mode, etc.
-- **Industry**: healthcare, fintech, gaming, education, etc.
-- **Stack**: React, Vue, or default to `react`
-
-### Step 2: Generate Design System (REQUIRED)
-
-**Always start with `--design-system`** to get comprehensive recommendations with reasoning:
+When the project already has a visual intake, use it before inventing a new direction:
 
 ```bash
-python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "<product_type> <industry> <keywords>" --design-system [-p "Project Name"]
+python .agent/scripts/design_system_pipeline.py status --project "<Project Name>"
 ```
 
-This command:
-1. Searches 5 domains in parallel (product, style, color, landing, typography)
-2. Applies reasoning rules from `ui-reasoning.csv` to select best matches
-3. Returns complete design system: pattern, style, colors, typography, effects
-4. Includes anti-patterns to avoid
-
-**Example:**
-```bash
-python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "beauty spa wellness service" --design-system -p "Serenity Spa"
-```
-
-### Step 2b: Persist Design System (Master + Overrides Pattern)
-
-To save the design system for hierarchical retrieval across sessions, add `--persist`:
+If references already exist, prefer the wrapper:
 
 ```bash
-python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "<query>" --design-system --persist -p "Project Name"
+python .agent/scripts/design_system_pipeline.py generate --project "<Project Name>" --prompt-missing
 ```
 
-This creates:
-- `design-system/MASTER.md` — Global Source of Truth with all design rules
-- `design-system/pages/` — Folder for page-specific overrides
+This persists the design system in `projects-docs/40-design-system/` and reads external references from `projects-docs/references/images/`.
 
-**With page-specific override:**
+## Step 1: Analyze the Request
+
+Extract the minimum inputs needed to choose a UI direction:
+
+- Product type: SaaS, dashboard, landing page, backoffice, portal, etc.
+- Style keywords: minimal, premium, operational, playful, editorial, etc.
+- Industry: fintech, healthcare, real estate, education, etc.
+- Stack: default to `react` unless the user says otherwise.
+
+## Step 2: Generate the Design System
+
+Always start with the design-system mode so the output is opinionated and reusable:
+
 ```bash
-python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "<query>" --design-system --persist -p "Project Name" --page "dashboard"
+python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "<product_type> <industry> <keywords>" --design-system -p "Project Name"
 ```
 
-This also creates:
-- `design-system/pages/dashboard.md` — Page-specific deviations from Master
+For this workspace, the preferred command is still the local wrapper because it:
 
-**How hierarchical retrieval works:**
-1. When building a specific page (e.g., "Checkout"), first check `design-system/pages/checkout.md`
-2. If the page file exists, its rules **override** the Master file
-3. If not, use `design-system/MASTER.md` exclusively
+- reads `projects-docs/references/images/`
+- uses `projects-docs/40-design-system/intake.json`
+- persists `MASTER.md`, prompt files, image analysis, and implementation context
+- keeps the output aligned with React + Tailwind instead of the original Next.js flow
 
-### Step 3: Supplement with Detailed Searches (as needed)
+Preferred command:
 
-After getting the design system, use domain searches to get additional details:
+```bash
+python .agent/scripts/design_system_pipeline.py generate --project "<Project Name>" --prompt-missing
+```
+
+Generated files:
+
+- `projects-docs/40-design-system/MASTER.md`
+- `projects-docs/40-design-system/page.<name>.md`
+- `projects-docs/40-design-system/prompt-foundation-react-tailwind.md`
+- `projects-docs/40-design-system/prompt-component-react-tailwind.md`
+- `projects-docs/40-design-system/prompt-page-react-tailwind.md`
+- `projects-docs/40-design-system/IMAGE_ANALYSIS.md`
+- `projects-docs/40-design-system/image-analysis.json`
+- `projects-docs/40-design-system/IMPLEMENTATION_CONTEXT.md`
+
+If a specific page needs an override:
+
+```bash
+python .agent/scripts/design_system_pipeline.py generate --project "<Project Name>" --page "dashboard" --prompt-missing
+```
+
+Retrieval order:
+
+1. Read `projects-docs/40-design-system/MASTER.md`.
+2. If `projects-docs/40-design-system/page.<name>.md` exists, let it override the master rules for that page.
+3. Implement the UI in React + Tailwind using those artifacts as the source of truth.
+
+## Step 3: Run Detailed Searches Only When Needed
+
+After the design system exists, use the shared search dataset for narrower questions:
 
 ```bash
 python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
 ```
 
-**When to use detailed searches:**
+Useful domains:
 
-| Need | Domain | Example |
-|------|--------|---------|
-| More style options | `style` | `--domain style "glassmorphism dark"` |
-| Chart recommendations | `chart` | `--domain chart "real-time dashboard"` |
-| UX best practices | `ux` | `--domain ux "animation accessibility"` |
-| Alternative fonts | `typography` | `--domain typography "elegant luxury"` |
-| Landing structure | `landing` | `--domain landing "hero social-proof"` |
+- `style` for alternative visual directions
+- `color` for palette ideas
+- `typography` for font pairings
+- `ux` for interaction and accessibility guidance
+- `chart` for data visualization choices
+- `landing` for hero and conversion structure
 
-### Step 4: Stack Guidelines (Default: react)
-
-Get implementation-specific best practices. If user doesn't specify a stack, **default to `react`**.
+Examples:
 
 ```bash
-python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "<keyword>" --stack react
-```
-
-Available stacks: `html-tailwind`, `react`, `vue`, `svelte`, `swiftui`, `react-native`, `flutter`, `shadcn`, `jetpack-compose`
-, `jetpack-compose`
----
-
-## Search Reference
-
-### Available Domains
-
-| Domain | Use For | Example Keywords |
-|--------|---------|------------------|
-| `product` | Product type recommendations | SaaS, e-commerce, portfolio, healthcare, beauty, service |
-| `style` | UI styles, colors, effects | glassmorphism, minimalism, dark mode, brutalism |
-| `typography` | Font pairings, Google Fonts | elegant, playful, professional, modern |
-| `color` | Color palettes by product type | saas, ecommerce, healthcare, beauty, fintech, service |
-| `landing` | Page structure, CTA strategies | hero, hero-centric, testimonial, pricing, social-proof |
-| `chart` | Chart types, library recommendations | trend, comparison, timeline, funnel, pie |
-| `ux` | Best practices, anti-patterns | animation, accessibility, z-index, loading |
-| `react` | React SPA performance | waterfall, bundle, suspense, memo, rerender, cache |
-| `web` | Web interface guidelines | aria, focus, keyboard, semantic, virtualize |
-| `prompt` | AI prompts, CSS keywords | (style name) |
-
-### Available Stacks
-
-| Stack | Focus |
-|-------|-------|
-| `react` | State, hooks, performance, patterns (DEFAULT) |
-| `html-tailwind` | Tailwind utilities, responsive, a11y |
-| `vue` | Composition API, Pinia, Vue Router |
-| `svelte` | Runes, stores, SvelteKit |
-| `swiftui` | Views, State, Navigation, Animation |
-| `react-native` | Components, Navigation, Lists |
-| `flutter` | Widgets, State, Layout, Theming |
-| `shadcn` | shadcn/ui components, theming, forms, patterns |
-| `jetpack-compose` | Composables, Modifiers, State Hoisting, Recomposition |
-
----
-
-## Example Workflow
-
-**User request:** "Làm landing page cho dịch vụ chăm sóc da chuyên nghiệp"
-
-### Step 1: Analyze Requirements
-- Product type: Beauty/Spa service
-- Style keywords: elegant, professional, soft
-- Industry: Beauty/Wellness
-- Stack: react (default)
-
-### Step 2: Generate Design System (REQUIRED)
-
-```bash
-python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "beauty spa wellness service elegant" --design-system -p "Serenity Spa"
-```
-
-**Output:** Complete design system with pattern, style, colors, typography, effects, and anti-patterns.
-
-### Step 3: Supplement with Detailed Searches (as needed)
-
-```bash
-# Get UX guidelines for animation and accessibility
 python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "animation accessibility" --domain ux
-
-# Get alternative typography options if needed
-python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "elegant luxury serif" --domain typography
+python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "operational dashboard light" --domain style
+python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "real estate analytics" --domain chart
 ```
 
-### Step 4: Stack Guidelines
+## Step 4: Load Stack Guidance
+
+If implementation guidance is needed, query the stack rules directly. Default to React:
 
 ```bash
 python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "layout responsive form" --stack react
 ```
 
-**Then:** Synthesize design system + detailed searches and implement the design.
-
----
+Available stacks include `html-tailwind`, `react`, `vue`, `svelte`, `swiftui`, `react-native`, `flutter`, `shadcn`, and `jetpack-compose`.
 
 ## Output Formats
 
-The `--design-system` flag supports two output formats:
+The shared search supports terminal and markdown output:
 
 ```bash
-# ASCII box (default) - best for terminal display
-python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "fintech crypto" --design-system
-
-# Markdown - best for documentation
-python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "fintech crypto" --design-system -f markdown
+python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "fintech dashboard" --design-system
+python3 .agent/.shared/ui-ux-pro-max/scripts/search.py "fintech dashboard" --design-system -f markdown
 ```
 
----
+For project persistence in this repo, prefer the local wrapper instead of saving ad hoc outputs elsewhere.
 
-## Tips for Better Results
+## Rules of Thumb
 
-1. **Be specific with keywords** - "healthcare SaaS dashboard" > "app"
-2. **Search multiple times** - Different keywords reveal different insights
-3. **Combine domains** - Style + Typography + Color = Complete design system
-4. **Always check UX** - Search "animation", "z-index", "accessibility" for common issues
-5. **Use stack flag** - Get implementation-specific best practices
-6. **Iterate** - If first search doesn't match, try different keywords
+1. Start from local references before inventing a style.
+2. Keep the design system flat in `projects-docs/40-design-system/`.
+3. Treat `projects-docs/references/images/` as the only external image intake.
+4. Reuse shared UI patterns instead of solving each page in isolation.
+5. Read `MASTER.md` before building components, pages, or routes.
+6. Use page overrides only when a page truly deviates from the global system.
 
----
+## Delivery Checklist
 
-## Common Rules for Professional UI
+Before shipping UI work, verify:
 
-These are frequently overlooked issues that make UI look unprofessional:
-
-### Icons & Visual Elements
-
-| Rule | Do | Don't |
-|------|----|----- |
-| **No emoji icons** | Use SVG icons (Heroicons, Lucide, Simple Icons) | Use emojis like 🎨 🚀 ⚙️ as UI icons |
-| **Stable hover states** | Use color/opacity transitions on hover | Use scale transforms that shift layout |
-| **Correct brand logos** | Research official SVG from Simple Icons | Guess or use incorrect logo paths |
-| **Consistent icon sizing** | Use fixed viewBox (24x24) with w-6 h-6 | Mix different icon sizes randomly |
-
-### Interaction & Cursor
-
-| Rule | Do | Don't |
-|------|----|----- |
-| **Cursor pointer** | Add `cursor-pointer` to all clickable/hoverable cards | Leave default cursor on interactive elements |
-| **Hover feedback** | Provide visual feedback (color, shadow, border) | No indication element is interactive |
-| **Smooth transitions** | Use `transition-colors duration-200` | Instant state changes or too slow (>500ms) |
-
-### Light/Dark Mode Contrast
-
-| Rule | Do | Don't |
-|------|----|----- |
-| **Glass card light mode** | Use `bg-white/80` or higher opacity | Use `bg-white/10` (too transparent) |
-| **Text contrast light** | Use `#0F172A` (slate-900) for text | Use `#94A3B8` (slate-400) for body text |
-| **Muted text light** | Use `#475569` (slate-600) minimum | Use gray-400 or lighter |
-| **Border visibility** | Use `border-gray-200` in light mode | Use `border-white/10` (invisible) |
-
-### Layout & Spacing
-
-| Rule | Do | Don't |
-|------|----|----- |
-| **Floating navbar** | Add `top-4 left-4 right-4` spacing | Stick navbar to `top-0 left-0 right-0` |
-| **Content padding** | Account for fixed navbar height | Let content hide behind fixed elements |
-| **Consistent max-width** | Use same `max-w-6xl` or `max-w-7xl` | Mix different container widths |
-
----
-
-## Pre-Delivery Checklist
-
-Before delivering UI code, verify these items:
-
-### Visual Quality
-- [ ] No emojis used as icons (use SVG instead)
-- [ ] All icons from consistent icon set (Heroicons/Lucide)
-- [ ] Brand logos are correct (verified from Simple Icons)
-- [ ] Hover states don't cause layout shift
-- [ ] Use theme colors directly (bg-primary) not var() wrapper
-
-### Interaction
-- [ ] All clickable elements have `cursor-pointer`
-- [ ] Hover states provide clear visual feedback
-- [ ] Transitions are smooth (150-300ms)
-- [ ] Focus states visible for keyboard navigation
-
-### Light/Dark Mode
-- [ ] Light mode text has sufficient contrast (4.5:1 minimum)
-- [ ] Glass/transparent elements visible in light mode
-- [ ] Borders visible in both modes
-- [ ] Test both modes before delivery
-
-### Layout
-- [ ] Floating elements have proper spacing from edges
-- [ ] No content hidden behind fixed navbars
-- [ ] Responsive at 375px, 768px, 1024px, 1440px
-- [ ] No horizontal scroll on mobile
-
-### Accessibility
-- [ ] All images have alt text
-- [ ] Form inputs have labels
-- [ ] Color is not the only indicator
-- [ ] `prefers-reduced-motion` respected
+- The chosen direction matches `MASTER.md` and any page override.
+- Components use the shared visual language consistently.
+- Light mode and contrast choices are legible.
+- Interactive elements have clear hover and focus states.
+- Layout works at common mobile and desktop breakpoints.
+- Icons are from a real icon set, not emojis.
+- Forms, tables, and summary cards follow the same spacing and hierarchy rules.

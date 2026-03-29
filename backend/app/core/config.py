@@ -12,6 +12,23 @@ class Settings(BaseSettings):
     DB_PASSWORD: Optional[str] = None
     DB_DRIVER: str = "{ODBC Driver 18 for SQL Server}"
     
+    # Adicionada nova var criada que crashou o uvicorn
+    DATABASE_URL: Optional[str] = None
+
+    # Domain defaults used by the application runtime.
+    # The workbook remains a reverse-engineering/parity artifact, not an operational dependency.
+    DEFAULT_MODIFICATION_KIND: str = "Não"
+    DEFAULT_DECORATED_VALUE_PER_M2: float = 0.0
+    DEFAULT_FACILITY_VALUE_PER_M2: float = 0.0
+    DEFAULT_PRIZE_ENABLED: bool = True
+    DEFAULT_FULLY_INVOICED: bool = False
+    DEFAULT_HAS_PERMUTA: bool = False
+    DEFAULT_PRIMARY_COMMISSION_LABEL: str = "Intermediada"
+    DEFAULT_PRIMARY_COMMISSION_PERCENT: float = 0.05
+    DEFAULT_PRIZE_COMMISSION_LABEL: str = "Prêmio"
+    DEFAULT_PRIZE_COMMISSION_PERCENT: float = 0.005
+
+    
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         # Constructing the connection string for pyodbc + sqlalchemy

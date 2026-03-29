@@ -1,7 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
-from typing import Optional
+from typing import List, Optional
 
 from app.services.domain.cash_flow import CashFlowSummary
 from app.services.commission_calculator import CommissionSummary
@@ -9,7 +9,8 @@ from app.services.commission_calculator import CommissionSummary
 # Parity reference: golden_test_cases.md and api_contracts_draft.md lines 1062-1101
 # All status fields map to cells in Analise Proposta!H85:H91 (normal) or Permuta!H88:H96 (permuta)
 
-PV_STATUS_APPROVED = "PV Aprovado*"
+PV_STATUS_APPROVED = "PV Aprovado"
+PV_STATUS_APPROVED_STAR = "PV Aprovado*"
 PV_STATUS_REJECTED = "PV Reprovado"
 COMMISSION_STATUS_OK = "OK"
 COMMISSION_STATUS_NOK = "NÃO OK"
@@ -25,8 +26,9 @@ class NormalSummary:
     table_total_vgv: float           # Base price
     proposal_total_vgv: float        # Sum of total_vgv across all proposal rows
     proposal_total_pv: float         # Sum of pv_net across all months
-    pv_variation_percent: float      # (proposal_total_pv - table_total_vgv) / table_total_vgv
-    commission_total_percent: float   # N12
+    standard_total_pv: float         # Sum of pv_net of the standard flow
+    pv_variation_percent: float      # (proposal_total_pv / standard_total_pv) - 1
+    commission_total_percent: float  # N12
     commission_total_value: float    # R35
     financing_level_ratio: Optional[float]
     pv_status: str                   # H85
@@ -34,6 +36,7 @@ class NormalSummary:
     financing_date_status: str       # H87
     capture_total_percent: float     # H88
     risk_level: str                  # H91
+    risk_reasons: List[str]          # Motivos do risco (ex: ["PV Reprovado"])
 
 
 @dataclass(frozen=True)
@@ -47,6 +50,7 @@ class PermutaSummary:
     financing_date_status: str       # H92
     capture_total_percent: float     # H93
     risk_level: str                  # H96
+    risk_reasons: List[str]
 
 
 class SummaryEngine:
@@ -62,34 +66,57 @@ class SummaryEngine:
         commission: CommissionSummary,
         base_price: float,
         proposal_total_vgv: float,
-        capture_total_percent: float,
+        standard_pv_net: float,
+        financing_level_ratio: float,
+        enterprise_discount_percent: float,
+        prize_commission_percent: float,
+        base_financing_percent: float,
+        financing_date_matches_base: bool,
     ) -> NormalSummary:
-        proposal_total_pv = flow_summary.total_pv_net
+        proposal_total_pv = round(flow_summary.total_pv_net, 2)
+        
+        # Comparamos o PV da Proposta com o PV do Fluxo Padrão (standard_pv_net).
+        # Se standard_pv_net não existir (fallover), usamos o base_price.
+        reference_pv = standard_pv_net if standard_pv_net > 0 else base_price
+        
         pv_variation = (
-            (proposal_total_pv - base_price) / base_price if base_price else 0.0
+            (proposal_total_pv / reference_pv) - 1 if reference_pv else 0.0
         )
-        pv_status = self._pv_status_normal(pv_variation)
+        capture_total_percent = round(max(0.0, 1 - financing_level_ratio), 4)
+        pv_status = self._pv_status_normal(
+            pv_variation=pv_variation,
+            enterprise_discount_percent=enterprise_discount_percent,
+            prize_commission_percent=prize_commission_percent,
+        )
         commission_status = COMMISSION_STATUS_OK if commission.is_within_tolerance else COMMISSION_STATUS_NOK
-        risk = self._risk_level(capture_total_percent, pv_status)
-
-        # H87: financing date OK when financing slots fall before or on delivery month
-        # Placeholder: always OK until DB-resolved date validation is wired
-        financing_date_status = FINANCING_DATE_STATUS_OK
+        risk, reasons = self._risk_level(
+            capture_percent=capture_total_percent,
+            base_financing_percent=base_financing_percent,
+            pv_status=pv_status,
+        )
+        financing_date_status = (
+            FINANCING_DATE_STATUS_OK
+            if financing_date_matches_base
+            else FINANCING_DATE_STATUS_NOK
+        )
 
         return NormalSummary(
-            table_total_vgv=base_price,
-            proposal_total_vgv=proposal_total_vgv,
+            table_total_vgv=round(base_price, 2),
+            proposal_total_vgv=round(proposal_total_vgv, 2),
             proposal_total_pv=proposal_total_pv,
-            pv_variation_percent=pv_variation,
-            commission_total_percent=commission.total_percent,
-            commission_total_value=commission.total_value,
-            financing_level_ratio=capture_total_percent,
+            standard_total_pv=round(standard_pv_net, 2),
+            pv_variation_percent=round(pv_variation, 6),
+            commission_total_percent=round(commission.total_percent, 6),
+            commission_total_value=round(commission.total_value, 2),
+            financing_level_ratio=round(financing_level_ratio, 4),
             pv_status=pv_status,
             commission_status=commission_status,
             financing_date_status=financing_date_status,
             capture_total_percent=capture_total_percent,
             risk_level=risk,
+            risk_reasons=reasons,
         )
+
 
     def build_permuta(
         self,
@@ -97,51 +124,103 @@ class SummaryEngine:
         commission: CommissionSummary,
         normal_summary: NormalSummary,
         exchange_total_vgv: float,
-        capture_total_percent: float,
-        has_financing_date_issue: bool,
+        financing_level_ratio: float,
+        enterprise_discount_percent: float,
+        permuta_commission_percent: float,
+        base_financing_percent: float,
+        financing_date_matches_base: bool,
     ) -> PermutaSummary:
-        exchange_total_pv = flow_summary.total_pv_net
-        vpl_variation_percent = (
-            (exchange_total_pv - normal_summary.proposal_total_pv)
-            / normal_summary.proposal_total_pv
-            if normal_summary.proposal_total_pv
-            else 0.0
+        exchange_total_pv = round(flow_summary.total_pv_net, 2)
+        exchange_pv_variation = (
+            (exchange_total_pv / exchange_total_vgv) - 1 if exchange_total_vgv else 0.0
         )
-        vpl_variation_value = exchange_total_pv - normal_summary.proposal_total_pv
-        pv_status = PV_STATUS_APPROVED if vpl_variation_percent >= 0 else PV_STATUS_REJECTED
+        vpl_variation_percent = (
+            exchange_pv_variation - normal_summary.pv_variation_percent
+        )
+        vpl_variation_value = round(normal_summary.proposal_total_vgv - exchange_total_vgv, 2)
+        capture_total_percent = round(max(0.0, 1 - financing_level_ratio), 4)
+        pv_status = self._pv_status_permuta(
+            vpl_variation_percent=vpl_variation_percent,
+            enterprise_discount_percent=enterprise_discount_percent,
+            permuta_commission_percent=permuta_commission_percent,
+        )
         commission_status = COMMISSION_STATUS_OK if commission.is_within_tolerance else COMMISSION_STATUS_NOK
-        financing_date_status = FINANCING_DATE_STATUS_NOK if has_financing_date_issue else FINANCING_DATE_STATUS_OK
-        risk = self._risk_level(capture_total_percent, pv_status)
+        financing_date_status = (
+            FINANCING_DATE_STATUS_OK
+            if financing_date_matches_base
+            else FINANCING_DATE_STATUS_NOK
+        )
+        risk, reasons = self._risk_level(
+            capture_percent=capture_total_percent,
+            base_financing_percent=base_financing_percent,
+            pv_status=pv_status,
+        )
 
         return PermutaSummary(
-            exchange_total_vgv=exchange_total_vgv,
+            exchange_total_vgv=round(exchange_total_vgv, 2),
             exchange_total_pv=exchange_total_pv,
-            exchange_vpl_variation_percent=vpl_variation_percent,
+            exchange_vpl_variation_percent=round(vpl_variation_percent, 6),
             exchange_vpl_variation_value=vpl_variation_value,
             pv_status=pv_status,
             commission_status=commission_status,
             financing_date_status=financing_date_status,
             capture_total_percent=capture_total_percent,
             risk_level=risk,
+            risk_reasons=reasons,
         )
 
-    def _pv_status_normal(self, pv_variation: float) -> str:
-        # Excel shows "PV Aprovado*" when PV >= base price or within expected discount.
-        # GT-001 shows pv_status = "PV Aprovado*" with pv_variation = 0.0 (discount rate used exactly)
-        # The asterisk (*) appears when result is at the limit — preserved as exact text from Excel.
-        # Exact logic TBD from DB discount rate; placeholder uses 0 threshold.
-        if pv_variation >= 0.0:
+    def _pv_status_normal(
+        self,
+        pv_variation: float,
+        enterprise_discount_percent: float,
+        prize_commission_percent: float,
+    ) -> str:
+        discount_used = -pv_variation
+        if discount_used > enterprise_discount_percent + prize_commission_percent:
+            return PV_STATUS_REJECTED
+        if discount_used > enterprise_discount_percent:
             return PV_STATUS_APPROVED
-        return PV_STATUS_REJECTED
+        return PV_STATUS_APPROVED_STAR
 
-    def _risk_level(self, capture_percent: float, pv_status: str) -> str:
-        # Mirrors Analise Proposta!H91 logic.
-        # GT-001: capture=0.5, pv_status=Aprovado -> Baixo
-        # GT-002: capture=0.25, pv_status=Reprovado -> Alto
+    def _pv_status_permuta(
+        self,
+        vpl_variation_percent: float,
+        enterprise_discount_percent: float,
+        permuta_commission_percent: float,
+    ) -> str:
+        discount_used = -vpl_variation_percent
+        if discount_used > enterprise_discount_percent + permuta_commission_percent:
+            return PV_STATUS_REJECTED
+        if discount_used > enterprise_discount_percent:
+            return PV_STATUS_APPROVED
+        return PV_STATUS_APPROVED_STAR
+
+    def _risk_level(
+        self,
+        capture_percent: float,
+        base_financing_percent: float,
+        pv_status: str,
+    ) -> tuple[str, List[str]]:
+        reasons = []
+        
+        # Avaliação de PV
         if pv_status == PV_STATUS_REJECTED:
-            return RISK_HIGH
-        if capture_percent >= 0.5:
-            return RISK_LOW
-        if capture_percent >= 0.25:
-            return RISK_MEDIUM
-        return RISK_HIGH
+            reasons.append("PV Financeiro Reprovado")
+        elif pv_status == PV_STATUS_APPROVED:
+            reasons.append("PV Aprovado com ressalvas (Exige Alçada)")
+            
+        # Avaliação de Captura
+        base_capture_target = max(0.0, 1 - base_financing_percent)
+        if capture_percent < base_capture_target:
+            if capture_percent < base_capture_target * 0.5:
+                reasons.append(f"Captura Crítica: {capture_percent*100:.2f}% (Meta: {base_capture_target*100:.2f}%)")
+            else:
+                reasons.append(f"Captura Insuficiente: {capture_percent*100:.2f}% (Meta: {base_capture_target*100:.2f}%)")
+
+        if PV_STATUS_REJECTED in reasons or any("Crítica" in r for r in reasons):
+            return RISK_HIGH, reasons
+        
+        if reasons:
+            return RISK_MEDIUM, reasons
+            
+        return RISK_LOW, ["Proposta dentro dos parâmetros de tabela"]

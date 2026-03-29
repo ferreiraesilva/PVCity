@@ -1,0 +1,274 @@
+{
+  "pillow_available": true,
+  "used_fallback_sources": false,
+  "source_directories": [
+    "projects-docs/references/images"
+  ],
+  "image_count": 3,
+  "images": [
+    {
+      "path": "projects-docs/references/images/2023 Travel Agency Web App Dashboard Design.jpg",
+      "filename_keywords": [
+        "web",
+        "app",
+        "dashboard"
+      ],
+      "width": 736,
+      "height": 552,
+      "orientation": "landscape",
+      "brightness": 0.8917,
+      "brightness_label": "light",
+      "saturation": 0.0395,
+      "saturation_label": "muted",
+      "contrast": 0.166,
+      "edge_density": 0.0571,
+      "density_label": "spacious",
+      "dominant_colors": [
+        {
+          "hex": "#D9E1DB",
+          "ratio": 0.1842,
+          "family": "white",
+          "brightness": 0.874,
+          "saturation": 0.0356
+        },
+        {
+          "hex": "#FDFDFD",
+          "ratio": 0.1644,
+          "family": "white",
+          "brightness": 0.9922,
+          "saturation": 0.0
+        },
+        {
+          "hex": "#CBD0D1",
+          "ratio": 0.1615,
+          "family": "gray",
+          "brightness": 0.8118,
+          "saturation": 0.0287
+        },
+        {
+          "hex": "#F1F8F7",
+          "ratio": 0.1541,
+          "family": "white",
+          "brightness": 0.9664,
+          "saturation": 0.0282
+        },
+        {
+          "hex": "#FEFEFE",
+          "ratio": 0.143,
+          "family": "white",
+          "brightness": 0.9961,
+          "saturation": 0.0
+        }
+      ]
+    },
+    {
+      "path": "projects-docs/references/images/Bitepoint - Restaurant POS System _ Orders + Payment.jpg",
+      "filename_keywords": [
+        "pos",
+        "orders",
+        "payment"
+      ],
+      "width": 736,
+      "height": 552,
+      "orientation": "landscape",
+      "brightness": 0.9382,
+      "brightness_label": "light",
+      "saturation": 0.0537,
+      "saturation_label": "muted",
+      "contrast": 0.0832,
+      "edge_density": 0.0627,
+      "density_label": "spacious",
+      "dominant_colors": [
+        {
+          "hex": "#E9EDE0",
+          "ratio": 0.2667,
+          "family": "white",
+          "brightness": 0.9224,
+          "saturation": 0.0549
+        },
+        {
+          "hex": "#FFFFFF",
+          "ratio": 0.2579,
+          "family": "white",
+          "brightness": 1.0,
+          "saturation": 0.0
+        },
+        {
+          "hex": "#F5F6F3",
+          "ratio": 0.165,
+          "family": "white",
+          "brightness": 0.963,
+          "saturation": 0.0122
+        },
+        {
+          "hex": "#E4F2EE",
+          "ratio": 0.0869,
+          "family": "white",
+          "brightness": 0.9362,
+          "saturation": 0.0579
+        },
+        {
+          "hex": "#DAD6BB",
+          "ratio": 0.0776,
+          "family": "yellow",
+          "brightness": 0.8349,
+          "saturation": 0.1422
+        }
+      ]
+    },
+    {
+      "path": "projects-docs/references/images/Redesigning fintech website - Design_ naz.jpg",
+      "filename_keywords": [
+        "fintech",
+        "website"
+      ],
+      "width": 600,
+      "height": 1034,
+      "orientation": "portrait",
+      "brightness": 0.9569,
+      "brightness_label": "light",
+      "saturation": 0.0225,
+      "saturation_label": "muted",
+      "contrast": 0.1346,
+      "edge_density": 0.0531,
+      "density_label": "spacious",
+      "dominant_colors": [
+        {
+          "hex": "#FFFFFF",
+          "ratio": 0.7253,
+          "family": "white",
+          "brightness": 1.0,
+          "saturation": 0.0
+        },
+        {
+          "hex": "#F9FAFC",
+          "ratio": 0.0939,
+          "family": "white",
+          "brightness": 0.9801,
+          "saturation": 0.0119
+        },
+        {
+          "hex": "#D9DFDD",
+          "ratio": 0.051,
+          "family": "gray",
+          "brightness": 0.8689,
+          "saturation": 0.0269
+        },
+        {
+          "hex": "#78779E",
+          "ratio": 0.05,
+          "family": "blue",
+          "brightness": 0.4785,
+          "saturation": 0.2468
+        },
+        {
+          "hex": "#FEFFFE",
+          "ratio": 0.0288,
+          "family": "white",
+          "brightness": 0.9989,
+          "saturation": 0.0039
+        }
+      ]
+    }
+  ],
+  "aggregate": {
+    "avg_brightness": 0.9289,
+    "avg_saturation": 0.0386,
+    "avg_contrast": 0.1279,
+    "avg_edge_density": 0.0576,
+    "brightness_label": "light",
+    "saturation_label": "muted",
+    "density_label": "spacious",
+    "palette": [
+      {
+        "hex": "#FFFFFF",
+        "ratio": 0.5415,
+        "family": "white",
+        "brightness": 1.0,
+        "saturation": 0.0
+      },
+      {
+        "hex": "#F0F0E0",
+        "ratio": 0.1022,
+        "family": "white",
+        "brightness": 0.9366,
+        "saturation": 0.0667
+      },
+      {
+        "hex": "#E0E0E0",
+        "ratio": 0.0902,
+        "family": "gray",
+        "brightness": 0.8784,
+        "saturation": 0.0
+      },
+      {
+        "hex": "#F0F0F0",
+        "ratio": 0.0634,
+        "family": "white",
+        "brightness": 0.9412,
+        "saturation": 0.0
+      },
+      {
+        "hex": "#D0D0D0",
+        "ratio": 0.0618,
+        "family": "gray",
+        "brightness": 0.8157,
+        "saturation": 0.0
+      },
+      {
+        "hex": "#F0FFF0",
+        "ratio": 0.0591,
+        "family": "white",
+        "brightness": 0.9832,
+        "saturation": 0.0588
+      },
+      {
+        "hex": "#E0F0F0",
+        "ratio": 0.033,
+        "family": "white",
+        "brightness": 0.9278,
+        "saturation": 0.0667
+      },
+      {
+        "hex": "#E0D0C0",
+        "ratio": 0.0296,
+        "family": "orange",
+        "brightness": 0.8245,
+        "saturation": 0.1429
+      }
+    ],
+    "filename_keywords": [
+      "web",
+      "app",
+      "dashboard",
+      "pos",
+      "orders",
+      "payment"
+    ],
+    "style_keywords": [
+      "light-ui",
+      "muted",
+      "spacious",
+      "balanced-contrast"
+    ],
+    "suggested_query_terms": [
+      "light-ui",
+      "muted",
+      "spacious",
+      "balanced-contrast",
+      "web",
+      "app",
+      "dashboard",
+      "pos",
+      "orders",
+      "payment"
+    ],
+    "token_hints": {
+      "primary": null,
+      "accent": null,
+      "background": "#FFFFFF",
+      "text": null
+    }
+  },
+  "warnings": []
+}

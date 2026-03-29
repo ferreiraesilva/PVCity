@@ -141,7 +141,12 @@ Objetivo: entregar os dados mínimos para montar a tela inicial e popular seleto
 ## Endpoint 2, carregar defaults da unidade
 
 ### `GET /api/v1/products/{enterprise_name}/units/{unit_code}/defaults`
-Objetivo: devolver o estado inicial da análise antes de edição humana.
+Objetivo: devolver o estado inicial da análise antes de edição humana, já ancorado em um empreendimento e uma unidade escolhidos.
+
+Pré-condição funcional:
+- o usuário já selecionou o empreendimento
+- o usuário já selecionou a unidade desse empreendimento
+- a data da análise continua sendo preenchida no contexto principal antes do cálculo final
 
 ### Response contract
 ```json
@@ -205,10 +210,11 @@ Os defaults não devem ser montados por heurística. Devem sair da combinação 
 Este é o contrato principal do MVP.
 
 ### Regras do endpoint
-1. Aceita cenário normal e cenário com permuta.
-2. Aceita arrays slotados por linha.
-3. Internamente deve normalizar slots ausentes para zero ou vazio, sem reordenar.
-4. Deve conseguir devolver tanto resultado resumido quanto trilhas de cálculo para paridade.
+1. Exige `product_context.enterprise_name`, `product_context.unit_code` e `product_context.analysis_date` definidos.
+2. Aceita cenário normal e cenário com permuta.
+3. Aceita arrays slotados por linha.
+4. Internamente deve normalizar slots ausentes para zero ou vazio, sem reordenar.
+5. Deve conseguir devolver tanto resultado resumido quanto trilhas de cálculo para paridade.
 
 ### Request schema
 ```json
@@ -1013,6 +1019,7 @@ Ela deve conhecer e preservar os slots 39 a 58 porque:
       "table_total_vgv": "number",
       "proposal_total_vgv": "number",
       "proposal_total_pv": "number",
+      "standard_total_pv": "number",
       "pv_variation_percent": "number",
       "commission_total_percent": "number",
       "commission_total_value": "number",
@@ -1066,7 +1073,8 @@ Ela deve conhecer e preservar os slots 39 a 58 porque:
     "normal": {
       "table_total_vgv": 2716846.0,
       "proposal_total_vgv": 2716846.0,
-      "proposal_total_pv": 2327435.0465137386,
+      "proposal_total_pv": 2327435.05,
+      "standard_total_pv": 2327435.05,
       "pv_variation_percent": 0.0,
       "commission_total_percent": 0.055,
       "commission_total_value": 149426.53,
@@ -1075,7 +1083,8 @@ Ela deve conhecer e preservar os slots 39 a 58 porque:
       "commission_status": "OK",
       "financing_date_status": "OK",
       "capture_total_percent": 0.5,
-      "risk_level": "Baixo"
+      "risk_level": "Baixo",
+      "risk_reasons": ["Proposta dentro dos par�metros de tabela"]
     }
   }
 }
@@ -1094,7 +1103,8 @@ Ela deve conhecer e preservar os slots 39 a 58 porque:
       "commission_status": "OK",
       "financing_date_status": "NÃO OK",
       "capture_total_percent": 0.25,
-      "risk_level": "Alto"
+      "risk_level": "Alto",
+      "risk_reasons": ["PV Financeiro Reprovado", "Captura Insuficiente"]
     }
   }
 }

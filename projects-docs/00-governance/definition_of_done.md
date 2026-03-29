@@ -14,6 +14,7 @@ O programa só pode ser marcado como concluído quando todos os itens abaixo for
 7. não existe bloqueio aberto impeditivo
 8. warnings latentes conhecidos estão tratados ou registrados
 9. a implementação respeita as decisões já congeladas no plano
+10. os cadastros operacionais necessários para substituir a planilha estão mantidos pelo sistema, sem dependência operacional do workbook
 
 ## Definition of Done por etapa
 Uma etapa do `step_catalog.yaml` só pode ser considerada concluída quando:
@@ -40,6 +41,7 @@ Além das regras gerais, etapas de implementação devem:
 - suportar permuta quando a etapa tocar o motor principal
 - incluir testes compatíveis com o escopo da etapa
 - registrar limitações reais em vez de mascarar incompletude
+- quando tocarem cadastros, entregar operação de manutenção e carga em lote compatível com o domínio
 
 ## Definition of Done para etapas de paridade
 Além das regras gerais, etapas de paridade devem:

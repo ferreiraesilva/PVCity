@@ -78,5 +78,8 @@ class ScenarioBuilder:
     def build_exchange_rows(self, request: CalculationRequest) -> ProposalRows:
         return self._normalizer.normalize(request.exchange_flow_rows)
 
+    def build_rows_from_lines(self, lines: List[ProposalLine]) -> ProposalRows:
+        return self._normalizer.normalize(lines)
+
     def build_rates(self, vpl_rate_annual: float) -> FinancialRates:
         return self._rates_resolver.resolve(vpl_rate_annual)

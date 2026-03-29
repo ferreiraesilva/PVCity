@@ -1,0 +1,42 @@
+{
+  "project_name": "PVCity",
+  "product_type": "operations web app",
+  "industry": "sales operations",
+  "style_keywords": [
+    "immersive-shell",
+    "operational",
+    "architectural",
+    "premium",
+    "trustworthy"
+  ],
+  "target_feel": "premium, architectural, controlled, warm, trustworthy",
+  "liked_examples": [
+    "Travel dashboard layout with airy cards, soft surfaces, and clear workspace zoning",
+    "Restaurant POS order and payment panels with fast status reading and modular summaries",
+    "Fintech marketing page with crisp white canvas, muted accents, and restrained visual noise",
+    "Full-height left sidebar shell where the right workspace feels embedded inside the same frame"
+  ],
+  "must_keep": [
+    "full-height left shell navigation with strong current-state emphasis",
+    "warm neutral canvas with restrained but unmistakable City brand accents",
+    "modular cards, summary strips, and panels that make task grouping obvious",
+    "high scannability for status, totals, and transactional information"
+  ],
+  "must_avoid": [
+    "small or timid sidebar treatment that loses the immersive shell effect",
+    "blue-first SaaS color direction disconnected from the City brand",
+    "heavy gradients, neon glow, or decorative effects that reduce clarity"
+  ],
+  "page_focus": [
+    "overview",
+    "workspace",
+    "transaction-summary",
+    "supporting-actions"
+  ],
+  "component_examples": {
+    "navigation": "full-height dark rail with soft active pill and premium shell feel",
+    "cards": "warm inset cards with rounded geometry, subtle border, and controlled shadow",
+    "forms": "grouped forms with explicit labels, generous spacing, and premium-but-practical typography",
+    "tables": "compact transactional tables with readable status and summary rows"
+  }
+}

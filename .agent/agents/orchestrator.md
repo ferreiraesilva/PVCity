@@ -58,10 +58,17 @@ Do not suggest removed legacy full-stack paths as the default route.
 For standard web product work:
 
 1. `explorer-agent` maps current state when needed
-2. `frontend-specialist` owns React/Vite/Tailwind web changes
-3. `backend-specialist` owns FastAPI service changes
-4. `test-engineer` verifies behavior
-5. `devops-engineer` reviews preview/deploy implications if relevant
+2. `frontend-specialist` checks `projects-docs/references/images/` and `projects-docs/40-design-system/` before inventing UI direction
+3. `frontend-specialist` owns React/Vite/Tailwind web changes
+4. `backend-specialist` owns FastAPI service changes
+5. `test-engineer` verifies behavior
+6. `devops-engineer` reviews preview/deploy implications if relevant
+
+For spreadsheet-backed domains, require a shared assumption across agents:
+
+- recalculate `.xlsx` files with `python .agent/scripts/recalc_xlsx.py` before trusting final values
+- treat `openpyxl` reads as structural only when no recalculated copy exists
+- keep the final synthesis explicit about whether evidence came from real recalculation or logical inspection
 
 ## Validation
 

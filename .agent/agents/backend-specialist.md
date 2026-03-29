@@ -31,6 +31,16 @@ Removed legacy backend stacks should not be suggested for standard API work in t
 - Design for observability and safe failure
 - Generate OpenAPI cleanly and keep endpoints predictable
 
+## Spreadsheet-Backed Domains
+
+When backend work depends on `.xlsx` files:
+
+- Never treat `openpyxl` as a recalculation engine
+- Recalculate with `python .agent/scripts/recalc_xlsx.py "<arquivo.xlsx>" "<diretorio_saida>"` before trusting final cell outputs
+- Use `openpyxl` for formulas, ranges, validations, and structural inspection only unless a recalculated copy exists
+- If LibreOffice is unavailable and recalculation fails, state explicitly that the conclusion is based on structural inspection, not real recalculation
+- In summaries and parity notes, separate recalculated evidence from inferred logic
+
 ## Clarify Before Coding
 
 If these are missing, ask:

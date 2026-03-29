@@ -18,6 +18,9 @@ You create executable plans for the standardized stack:
 - Planning mode writes plans, not product code
 - Treat the current filesystem and current request as the source of truth
 - Do not infer architecture from old templates if the new standard stack already applies
+- For new frontend work, check whether `projects-docs/40-design-system/` already exists and include a design-system initialization step when it does not
+- For work driven by Excel parity or `.xlsx` evidence, include an explicit recalculation step with `python .agent/scripts/recalc_xlsx.py` before any conclusion that depends on final cell values
+- If LibreOffice may be missing, include a fallback note that structural inspection can continue, but must be reported as non-recalculated analysis
 
 ## Project Type Detection
 
@@ -57,5 +60,6 @@ Every implementation plan should include:
 - clear goal
 - success criteria
 - stack choices aligned to React/Vite/Tailwind and FastAPI
+- design-system initialization or reuse for frontend-heavy work
 - task breakdown by agent
 - explicit verification steps

@@ -1,4 +1,4 @@
-# Inventário inicial da Template PV
+# Inventario inicial da Template PV
 
 ## Abas existentes
 - tbCadastroProduto
@@ -13,28 +13,33 @@
 
 ## Leitura funcional inicial por aba
 ### Analise Proposta
-Tela principal da negociação sem permuta. Captura dados da proposta, monta tabela base, monta proposta comercial, calcula comissão e prêmio, mostra análise comparativa de PV e controla a chave de permuta por `N6`.
+Tela principal da negociacao sem permuta. A sequencia funcional obrigatoria e:
+1. selecionar o empreendimento em `E5`
+2. selecionar a unidade correspondente em `F8`
+3. informar a data base da analise em `E11`
+
+Com esse contexto, a aba monta a tabela base da venda padrao, carrega os dados da unidade, monta a proposta comercial, calcula comissao e premio, e compara o PV padrao com o PV da proposta do cliente. Tambem controla a chave de permuta por `N6`.
 
 ### Permuta
-Versão da proposta quando existe bem entregue como parte do pagamento. Reaproveita grande parte do contexto da Analise Proposta, mantém grade própria e recalcula VGV, VPL, comissão e distribuição.
+Versao da proposta quando existe bem entregue como parte do pagamento. Reaproveita grande parte do contexto da Analise Proposta, mantem grade propria e recalcula VGV, VPL, comissao e distribuicao.
 
 ### Fluxo
-Motor matemático principal da planilha. Define premissas financeiras, monta a curva mensal do fluxo da tabela e da proposta, desconta os fluxos a valor presente e possui bloco separado para proposta com permuta.
+Motor matematico principal da planilha. Define premissas financeiras, monta a curva mensal do fluxo da tabela e da proposta, desconta os fluxos a valor presente e possui bloco separado para proposta com permuta.
 
 ### Tabela Venda - Parcela
-Base parametrizadora do parcelamento padrão. Fornece quantidade de parcelas, periodicidade, percentuais, mês de início e composição de sinal, entrada, mensais, semestrais, única e financiamento.
+Base parametrizadora do parcelamento padrao. Fornece quantidade de parcelas, periodicidade, percentuais, mes de inicio e composicao de sinal, entrada, mensais, semestrais, unica e financiamento.
 
 ### Referencias
-Base pesada de consulta. Contém a tabela de lookup do produto, unidade, área, preço, garagem e outros atributos.
+Base pesada de consulta. Contem a tabela de lookup do produto, unidade, area, preco, garagem e outros atributos.
 
 ### PRC + COORD
-Aba derivada que interfere no cálculo, especialmente em comissão e rateios.
+Aba derivada que interfere no calculo, especialmente em comissao e rateios.
 
 ### Carta Proposta
-Saída de apresentação do resultado.
+Saida de apresentacao do resultado.
 
 ### tbCadastroProduto
-Base cadastral de apoio, inclusive para taxa VPL e mês de entrega.
+Base cadastral de apoio, inclusive para taxa VPL e mes de entrega.
 
 ### Imobs
-Base de imobiliárias.
+Base de imobiliarias.

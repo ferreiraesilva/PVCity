@@ -1,138 +1,88 @@
-# Estado resumido do programa — Handoff Operacional
-> **Este arquivo é a única fonte de estado do programa entre sessões.**
-> O agente deve lê-lo como primeira ação antes de qualquer pergunta ao usuário.
+# Estado resumido do programa - Handoff operacional
+> Este arquivo e a unica fonte de estado do programa entre sessoes.
+> O agente deve le-lo antes de retomar o trabalho.
 
 ---
 
-## 🟢 Ponto de Retomada
-O backend Python/FastAPI está **100% implementado e testado**.
-A próxima etapa é **IMPL-02: Frontend React + Tailwind CSS**.
+## Ponto de retomada
+O sistema ja tem:
+- fluxo principal de simulacao em React + Tailwind
+- backend FastAPI com calculo operacional
+- separacao explicita entre workbook de paridade e runtime oficial
+- backoffice inicial para manutencao de cadastros operacionais
+
+A proxima frente prioritaria e consolidar a operacao real do banco:
+- popular e validar dados reais
+- endurecer contratos do modulo administrativo
+- fechar a paridade financeira restante contra o workbook
 
 ---
 
-## Regras Inegociáveis (não reabrir)
-- A única fonte de verdade de regras de negócio é `projects-docs/references/source-of-truth/Template PV - Março 26_v4.xlsx`
-- Permuta é escopo obrigatório do MVP
-- Object Calisthenics: sem primitivos expostos, sem `else` após `return`, sem abreviações
-- Código e comentários em inglês
-- O banco de dados (MSSQLServer 2022) será criado e populado em fase separada futura
-- Não reinventar regras de negócio — se houver lacuna, aplicar `replanning_policy.md`
-
-## Estratégia de Modelos
-| Tarefa | Modelo |
-|---|---|
-| Frontend React + Tailwind (IMPL-02) | **Gemini 1.5 Flash** |
-| Core de cálculo / lógica financeira | **Claude 3.5 Sonnet** |
-| Banco de dados e integrações | **Claude 3.5 Sonnet** |
+## Regras inegociaveis
+- A planilha em `projects-docs/references/source-of-truth/Template PV - Marco 26_v4.xlsx` e fonte de verdade para engenharia reversa
+- A planilha nao pode ser dependencia operacional do produto final
+- Workbook serve apenas para paridade, investigacao e recalculo comparativo
+- Permuta e escopo obrigatorio do MVP
+- Em arquivos XLSX:
+  1. nunca assumir recalculo via openpyxl
+  2. executar `python .agent/scripts/recalc_xlsx.py <arquivo> <saida>` antes de confiar em resultados finais
+  3. se LibreOffice nao estiver disponivel, registrar explicitamente que a analise e estrutural
+  4. distinguir sempre recalculo real vs inspecao logica
 
 ---
 
-## Verificação Imediata — Execute Antes de Prosseguir
-```bash
-cd c:\Projetos\PVCity
-python -m pytest tests/ -q
-# Esperado: 20 passed in ~0.16s
-```
+## Estado arquitetural atual
+### Backend
+- `backend/app/api/v1/endpoints/scenarios.py`: calculo principal
+- `backend/app/api/v1/endpoints/bootstrap.py`: referencia operacional vinda do banco
+- `backend/app/api/v1/endpoints/products.py`: defaults da unidade a partir do banco
+- `backend/app/api/v1/endpoints/admin.py`: CRUD e importacao CSV do backoffice
+- `backend/app/services/database_reference_service.py`: fonte operacional do runtime
+- `backend/app/services/workbook_reference_service.py`: uso restrito a engenharia reversa/paridade
+- `backend/app/services/admin_service.py`: CRUDs e importacao CSV
 
-Se os 20 testes passarem, o backend está íntegro. Pode iniciar IMPL-02 diretamente.
+### Frontend
+- `frontend/src/App.jsx`: shell com menu lateral
+- `frontend/src/components/simulation/SimulationWorkspace.jsx`: simulador
+- `frontend/src/components/admin/AdminWorkspace.jsx`: backoffice inicial
 
----
-
-## Arquitetura de Pastas Atual
-```
-c:\Projetos\PVCity\
-  backend/
-    app/
-      main.py                           # FastAPI - 5 routers
-      core/config.py                    # MSSQL env vars
-      schemas/scenarios.py              # Pydantic contracts
-      api/v1/endpoints/
-        scenarios.py                    # POST /api/v1/scenarios/calculate
-        scenario_store.py               # POST + GET /api/v1/scenarios
-        bootstrap.py                    # GET /api/v1/bootstrap/reference-data
-        products.py                     # GET /api/v1/products/{e}/units/{u}/defaults
-        parity.py                       # POST /api/v1/parity/trace
-      services/
-        domain/
-          proposal.py                   # ProposalSlot, ProposalRows, MonthOffset
-          rates.py                      # FinancialRates (J6, J7, J8)
-          cash_flow.py                  # MonthlyCashFlowEvent, CashFlowSummary
-        monthly_schedule_engine.py      # ENGINE PRINCIPAL - mirrors tbFluxo LET+SUMPRODUCT
-        scenario_builder.py             # ScenarioBuilder, normalizers
-        commission_calculator.py        # CommissionBaseCalculator (N8:N12, R35:R36)
-        summary_engine.py               # SummaryEngine (H85:H91, H88:H96)
-        parity_guard.py                 # ParityGuardService, tolerâncias
-        payload_validator.py            # 4 regras de validação do contrato
-    requirements.txt
-  tests/
-    parity/test_golden_cases.py         # 20 testes
-  pyproject.toml                        # pytest pythonpath config
-  projects-docs/
-    00-governance/
-      PLAN.md, definition_of_done.md, execution_policy.md,
-      replanning_policy.md, NEXT_CHAT_HANDOFF.md (este arquivo)
-    10-excel-reverse-engineering/       # Todos os mapeamentos do Excel
-    20-domain/api_contracts_draft.md    # Contratos de API detalhados
-    30-architecture/
-      golden_test_cases.md              # GT-001 e GT-002
-      parity_rules.md                   # Tolerâncias e regras de paridade
-    references/source-of-truth/         # Template PV - Março 26_v4.xlsx
-  project-orchestration/step_catalog.yaml
-  .agent/                               # antigravity-kit (não modificar)
-```
+### Documentacao
+- `projects-docs/20-domain/admin_backoffice_plan.md`: contrato do modulo administrativo
+- `projects-docs/20-domain/domain_model.md`: entidades operacionais
+- `projects-docs/30-architecture/parity_rules.md`: regras de paridade
 
 ---
 
-## Endpoints Backend Disponíveis
-
-| Método | Rota | Status |
+## Endpoints disponiveis
+| Metodo | Rota | Status |
 |---|---|---|
-| POST | `/api/v1/scenarios/calculate` | ✅ Motor real |
-| POST | `/api/v1/scenarios` | ✅ in-memory (TODO:DB) |
-| GET | `/api/v1/scenarios/{id}` | ✅ in-memory (TODO:DB) |
-| GET | `/api/v1/bootstrap/reference-data` | ✅ mocked (TODO:DB) |
-| GET | `/api/v1/products/{e}/units/{u}/defaults` | ✅ mocked (TODO:DB) |
-| POST | `/api/v1/parity/trace` | ✅ |
-
-**Como rodar o backend:**
-```bash
-cd c:\Projetos\PVCity\backend
-uvicorn app.main:app --reload --port 8000
-# Swagger em: http://localhost:8000/api/v1/openapi.json
-```
+| GET | `/api/v1/bootstrap/reference-data` | operacional |
+| GET | `/api/v1/products/{enterprise_name}/units/{unit_code}/defaults` | operacional |
+| POST | `/api/v1/scenarios/calculate` | operacional |
+| POST | `/api/v1/parity/trace` | paridade |
+| GET/POST/PUT/DELETE | `/api/v1/admin/enterprises` | operacional |
+| GET/POST/PUT/DELETE | `/api/v1/admin/units` | operacional |
+| GET/POST/PUT/DELETE | `/api/v1/admin/standard-flows` | operacional |
+| GET/POST/PUT/DELETE | `/api/v1/admin/real-estate-agencies` | operacional |
+| POST | `/api/v1/admin/import/{resource}/preview` | operacional |
+| POST | `/api/v1/admin/import/{resource}/commit` | operacional |
 
 ---
 
-## O que o TODO:DB significa
-Todos os endpoints marcados `TODO:DB` funcionam com dados mockados do Excel.
-Quando o banco for criado (fase futura), basta substituir os mocks por leituras SQLAlchemy/pyodbc.
-As constantes `PLACEHOLDER_VPL_RATE = 0.10` e `PLACEHOLDER_PRC_COORD_O34 = 100523.302`
-no arquivo `scenarios.py` também precisarão vir do banco.
+## Validacao recente
+- `python -m py_compile backend/app/main.py backend/app/api/v1/endpoints/admin.py backend/app/services/admin_service.py backend/app/schemas/admin.py`
+- `python -c "from app.main import app"` com `PYTHONPATH=backend`
+- `npm run build` em `frontend/`
 
 ---
 
-## Próxima Etapa: IMPL-02 — Frontend React + Tailwind
-
-**Modelo recomendado: Gemini 1.5 Flash**
-
-### Escopo do Frontend
-1. Scaffold Vite + React + Tailwind CSS
-2. Página principal: formulário de Proposta (slots 39-58 + contexto do produto)
-3. Integração com `GET /bootstrap/reference-data` para popular selects
-4. Integração com `POST /scenarios/calculate` para exibir resultado
-5. Exibição do Summary (pv_status, risk_level, commission, etc.)
-6. Fluxo mensal em tabela ou gráfico
-7. Suporte a cenário NORMAL e PERMUTA
-
-### Referências de design para o frontend
-- `projects-docs/20-domain/api_contracts_draft.md` — estrutura de dados
-- `projects-docs/30-architecture/golden_test_cases.md` — valores esperados na UI
-
----
-
-## Artefatos de Governança para Leitura Obrigatória (se necessário)
-1. `projects-docs/00-governance/PLAN.md`
-2. `projects-docs/00-governance/definition_of_done.md`
-3. `projects-docs/00-governance/execution_policy.md`
-4. `projects-docs/00-governance/replanning_policy.md`
-5. `project-orchestration/step_catalog.yaml`
+## Proximas etapas prioritarias
+1. Popular a base com dados reais de empreendimentos, unidades, fluxos e imobiliarias.
+2. Adicionar validacoes de negocio mais estritas no backoffice:
+   - unicidade e consistencia de slots
+   - relatorios de importacao mais ricos
+   - filtros e busca nas listagens
+3. Fechar a paridade financeira restante no calculo:
+   - comissao indireta
+   - detalhes finos de `commission_status`
+4. Se necessario, criar migracoes adicionais e seeds para carga inicial.
