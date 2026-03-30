@@ -122,3 +122,19 @@ class ImportCommitResponse(BaseModel):
     resource: Literal["enterprises", "units", "standard-flows", "real-estate-agencies"]
     summary: dict[str, int]
     errors: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class GlobalParameterBase(BaseModel):
+    key: str
+    value: float
+    description: str | None = None
+
+
+class GlobalParameterUpdate(BaseModel):
+    value: float
+
+
+class GlobalParameterRead(GlobalParameterBase):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int

@@ -10,6 +10,7 @@ import { SummaryCard } from '../results/SummaryCard';
 import { EconomicIndicators } from '../results/EconomicIndicators';
 import { useScenarioState } from '../../hooks/useScenarioState';
 import { services } from '../../api/services';
+import { formatDatePTBR } from '../../utils/dateUtils';
 
 
 const YES_NO_OPTIONS = [
@@ -118,6 +119,7 @@ export function SimulationWorkspace({ referenceData }) {
         product_context: state.productContext,
         commercial_context: state.commercialContext,
         commission_context: state.commissionContext,
+        financial_rates: state.financialRates,
         sale_flow_rows: state.saleFlowRows.filter(
           (row) => row.installment_count || row.installment_value || row.total_vgv
         ),
@@ -222,7 +224,7 @@ export function SimulationWorkspace({ referenceData }) {
               </div>
               <div>
                 <div className="font-medium text-text-main">Entrega</div>
-                <div>{state.productContext.delivery_month || '--'}</div>
+                <div className="font-mono">{formatDatePTBR(state.productContext.delivery_month)}</div>
               </div>
             </div>
 

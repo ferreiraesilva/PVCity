@@ -4,6 +4,7 @@ import { CurrencyInput } from '../shared/CurrencyInput';
 import { Input } from '../shared/Input';
 import { Select } from '../shared/Select';
 import { Button } from '../shared/Button';
+import { formatDatePTBR } from '../../utils/dateUtils';
 
 const PERIODICITY_OPTIONS = [
   'Sinal',
@@ -91,7 +92,7 @@ export function ProposalForm({
                   >
                     <div className="pl-2 font-mono font-bold text-slate-600">{row.installment_count || '–'}</div>
                     <div className="font-semibold text-slate-700">{row.periodicity || '–'}</div>
-                    <div className="text-slate-400 font-medium">{row.start_month || '–'}</div>
+                    <div className="text-slate-400 font-medium font-mono tracking-tight">{formatDatePTBR(row.start_month)}</div>
                     <div className="text-right font-bold text-slate-700">
                       {row.installment_value != null && row.installment_value !== ''
                         ? BRL.format(row.installment_value)

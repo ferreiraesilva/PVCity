@@ -8,6 +8,7 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session, joinedload
 
 from app.models.enterprise import Enterprise
+from app.models.global_parameter import GlobalParameter
 from app.models.proposal import Proposal
 from app.models.real_estate_agency import RealEstateAgency
 from app.models.unit import Unit
@@ -24,6 +25,7 @@ from app.schemas.admin import (
     StandardFlowUpdate,
     UnitCreate,
     UnitUpdate,
+    GlobalParameterUpdate,
 )
 
 
@@ -263,6 +265,18 @@ class AdminService:
         entity = self._get_real_estate_agency(agency_id)
         self.db.delete(entity)
         self.db.commit()
+
+    def list_global_parameters(self) -> list[GlobalParameter]:
+        return self.db.query(GlobalParameter).order_by(GlobalParameter.key).all()
+
+    def update_global_parameter(self, key: str, payload: GlobalParameterUpdate) -> GlobalParameter:
+        entity = self.db.query(GlobalParameter).filter(GlobalParameter.key == key).first()
+        if not entity:
+            raise HTTPException(status_code=404, detail=f"Parâmetro '{key}' não encontrado.")
+        entity.value = payload.value
+        self.db.commit()
+        self.db.refresh(entity)
+        return entity
 
     def preview_import(self, resource: str, upload: UploadFile) -> ImportPreviewResponse:
         if resource not in RESOURCE_NAMES:

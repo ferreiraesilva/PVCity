@@ -49,6 +49,11 @@ const EMPTY_COMMISSION_CONTEXT = {
   ],
 };
 
+const EMPTY_FINANCIAL_RATES = {
+  vpl_rate_annual: 0.1003, // 0.8% am approx
+  indirect_spread: 0.0,
+};
+
 function cloneRows(rows = EMPTY_ROWS) {
   return rows.map((row) => ({ ...row }));
 }
@@ -183,6 +188,20 @@ export function useScenarioState() {
     
     const defaultExchange = (defaults?.default_exchange_flow_rows || []).filter(filterEmpty);
     setExchangeFlowRows(cloneRows(defaultExchange.length > 0 ? defaultExchange : EMPTY_ROWS));
+
+    // Sincroniza taxas financeiras globais vindas do bootstrap
+    if (defaults?.financial_rates) {
+      setFinancialRates((current) => ({
+        ...current,
+        ...defaults.financial_rates,
+      }));
+    }
+  };
+
+  const [financialRates, setFinancialRates] = useState(EMPTY_FINANCIAL_RATES);
+
+  const updateFinancialRates = (field, value) => {
+    setFinancialRates((current) => ({ ...current, [field]: value }));
   };
 
   return {
@@ -207,5 +226,8 @@ export function useScenarioState() {
     clearUnitSelection,
     applyUnitDefaults,
     resetScenarioData,
+    financialRates,
+    setFinancialRates,
+    updateFinancialRates,
   };
 }

@@ -21,6 +21,8 @@ from app.schemas.admin import (
     UnitCreate,
     UnitRead,
     UnitUpdate,
+    GlobalParameterRead,
+    GlobalParameterUpdate,
 )
 from app.services.admin_service import AdminService
 
@@ -121,3 +123,13 @@ def preview_import(resource: str, db: DbSession, file: UploadFile = File(...)):
 @router.post("/import/{resource}/commit", response_model=ImportCommitResponse)
 def commit_import(resource: str, db: DbSession, file: UploadFile = File(...)):
     return get_admin_service(db).commit_import(resource, file)
+
+
+@router.get("/config", response_model=list[GlobalParameterRead])
+def list_global_parameters(db: DbSession):
+    return get_admin_service(db).list_global_parameters()
+
+
+@router.put("/config/{key}", response_model=GlobalParameterRead)
+def update_global_parameter(key: str, payload: GlobalParameterUpdate, db: DbSession):
+    return get_admin_service(db).update_global_parameter(key, payload)

@@ -52,4 +52,9 @@ export const services = {
     });
     return data;
   },
+  
+  async updateConfig(key, value) {
+    const { data } = await apiClient.put(`/admin/config/${key}`, { value });
+    return data;
+  },
 };

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.session import SessionLocal
 from app.models.enterprise import Enterprise
+from app.models.global_parameter import GlobalParameter
 from app.models.real_estate_agency import RealEstateAgency
 from app.models.unit import Unit
 from app.models.unit_standard_flow import UnitStandardFlow
@@ -211,10 +212,14 @@ class DatabaseReferenceService:
             )
             real_estate_agencies = [a.name for a in agencies]
 
+            global_params = db.query(GlobalParameter).all()
+            financial_rates = {p.key: p.value for p in global_params}
+
             return {
                 "products": products,
                 "unit_lookup_keys": unit_lookup_keys,
                 "real_estate_agencies": real_estate_agencies,
+                "financial_rates": financial_rates,
                 "enums": {
                     "boolean_ptbr": ["Sim", "NÃ£o"],
                     "modification_kind": ["NÃ£o", "Decorado (R$/mÂ²)", "Facility (R$/mÂ²)"],

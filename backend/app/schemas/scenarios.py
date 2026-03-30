@@ -58,6 +58,10 @@ class CommissionContext(BaseModel):
     prize_commission_percent: Optional[float] = None
     secondary_commission_slots: List[SecondaryCommissionSlot] = []
 
+class FinancialRates(BaseModel):
+    vpl_rate_annual: float = 0.1003  # 0.8% am equivalent
+    indirect_spread: float = 0.0     # Placeholder for future logic
+
 class ProposalLine(BaseModel):
     row_slot: int
     installment_count: Optional[float] = None
@@ -76,6 +80,7 @@ class CalculationRequest(BaseModel):
     product_context: ProductContext
     commercial_context: CommercialContext
     commission_context: CommissionContext
+    financial_rates: Optional[FinancialRates] = None
     sale_flow_rows: List[ProposalLine]
     exchange_flow_rows: List[ProposalLine]
     # Fluxo padrão da unidade — enviado pelo front para cálculo independente do PV de referência

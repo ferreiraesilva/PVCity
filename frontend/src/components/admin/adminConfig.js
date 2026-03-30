@@ -100,6 +100,10 @@ export const RESOURCE_CONFIG = {
       is_active: true,
     },
   },
+  'financial-params': {
+    title: 'Parâmetros Financeiros',
+    description: 'Configure as taxas globais e premissas financeiras que impactam o PV (VPL) de todas as simulações.',
+  },
 };
 
 export function normalizeValue(field, value) {

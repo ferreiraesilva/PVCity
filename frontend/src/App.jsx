@@ -15,6 +15,8 @@ import { AdminCrudWorkspace } from './components/admin/AdminCrudWorkspace';
 import { CsvImportWorkspace } from './components/admin/CsvImportWorkspace';
 import { RESOURCE_CONFIG } from './components/admin/adminConfig';
 import { SimulationWorkspace } from './components/simulation/SimulationWorkspace';
+import { FinancialParamsWorkspace } from './components/admin/FinancialParamsWorkspace';
+import { useScenarioState } from './hooks/useScenarioState';
 
 
 const ADMIN_SUBMENU = [
@@ -22,10 +24,12 @@ const ADMIN_SUBMENU = [
   { key: 'units', label: 'Unidades' },
   { key: 'standard-flows', label: 'Fluxos padrão' },
   { key: 'real-estate-agencies', label: 'Imobiliárias' },
+  { key: 'financial-params', label: 'Parâmetros financeiros' },
   { key: 'imports', label: 'Importações CSV' },
 ];
 
 function App() {
+  const state = useScenarioState();
   const [activeSection, setActiveSection] = useState('simulation');
   const [activeAdminItem, setActiveAdminItem] = useState('enterprises');
   const [adminMenuOpen, setAdminMenuOpen] = useState(true);
@@ -77,6 +81,9 @@ function App() {
       setScreenError('');
       const data = await services.getBootstrapData();
       setReferenceData(data);
+      if (data.financial_rates) {
+        state.setFinancialRates(current => ({ ...current, ...data.financial_rates }));
+      }
     } catch (error) {
       const message = error.code === 'ECONNABORTED'
         ? 'Erro operacional: timeout no backend ou no banco.'
@@ -161,7 +168,7 @@ function App() {
                       : "text-[#cfbfab] hover:bg-white/[0.05] hover:text-white"
                   )}
                   onClick={() => setIsSidebarCollapsed(false) || setAdminMenuOpen((current) => !current)}
-                  title={isSidebarCollapsed ? "Cadastros" : ""}
+                  title={isSidebarCollapsed ? "Parâmetros" : ""}
                 >
                   <span
                     className={clsx(
@@ -171,7 +178,7 @@ function App() {
                   />
                   <div className={clsx("flex items-center gap-3", isSidebarCollapsed && "justify-center")}>
                     <Database className={clsx("h-[18px] w-[18px]", activeSection === 'admin' && "ml-2.5 transition-all")} />
-                    {!isSidebarCollapsed && <span className="text-sm font-medium">Cadastros</span>}
+                    {!isSidebarCollapsed && <span className="text-sm font-medium">Parâmetros</span>}
                   </div>
                   {!isSidebarCollapsed && (
                     <ChevronDown className={`h-4 w-4 transition-transform ${adminMenuOpen ? 'rotate-180' : ''}`} />
@@ -261,7 +268,7 @@ function App() {
               <SimulationWorkspace referenceData={referenceData} />
             ) : null}
 
-            {!loading && activeSection === 'admin' && activeAdminItem !== 'imports' ? (
+            {!loading && activeSection === 'admin' && !['imports', 'financial-params'].includes(activeAdminItem) ? (
               <AdminCrudWorkspace
                 resource={activeAdminItem}
                 referenceData={referenceData}
@@ -274,6 +281,13 @@ function App() {
                 defaultResource="enterprises"
                 onReferenceDataRefresh={loadBootstrap}
                 onAfterImport={(resourceKey) => setActiveAdminItem(resourceKey)}
+              />
+            ) : null}
+
+            {!loading && activeSection === 'admin' && activeAdminItem === 'financial-params' ? (
+              <FinancialParamsWorkspace 
+                financialRates={state.financialRates}
+                onUpdateRates={state.updateFinancialRates}
               />
             ) : null}
           </div>
